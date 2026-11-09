@@ -1,0 +1,35 @@
+/* brat club design tokens: source of truth is the Mesa design canvas */
+:root {
+  --black: #0e0a0f;
+  --surface: #1a1219;
+  --surface-2: #261a24;
+  --surface-chat: #150f14;
+  --border: #3a2634;
+  --border-dashed: #5a3a4b;
+  --text: #fff1f7;
+  --muted: #b79aa9;
+  --pink: #ff2e93;
+  --pink-soft: #ff7ab8;
+  --pink-pale: #ffc2dc;
+  --lilac: #c9a0dc;
+  --peach: #f7d4a8;
+  --burgundy: #7a1a16;
+  --mauve: #a05a79;
+
+  --glow: 0 0 28px rgba(255, 46, 147, 0.45);
+  --glow-strong: 0 0 36px rgba(255, 46, 147, 0.5);
+  --glow-soft: 0 0 24px rgba(255, 46, 147, 0.4);
+
+  --radius-card: 24px;
+  --radius-pill: 999px;
+  --touch: 44px;
+
+  --font-heading: var(--font-bricolage), system-ui, sans-serif;
+  --font-body: var(--font-dm-sans), system-ui, sans-serif;
+}
+
+/* burgundy-mauve checker: use as background-image, set background-size to taste */
+.checker {
+  background-image: conic-gradient(var(--burgundy) 25%, var(--mauve) 0 50%, var(--burgundy) 0 75%, var(--mauve) 0);
+  background-size: 48px 48px;
+}

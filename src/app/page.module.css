@@ -1,0 +1,32 @@
+.main {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 16px;
+  padding: 44px 24px;
+  background-image: linear-gradient(160deg, rgba(14, 10, 15, 0.15), rgba(14, 10, 15, 0.9) 78%),
+    conic-gradient(var(--burgundy) 25%, var(--mauve) 0 50%, var(--burgundy) 0 75%, var(--mauve) 0);
+  background-size: auto, 112px 112px;
+}
+
+.kicker {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.title {
+  font-size: clamp(88px, 28vw, 150px);
+  line-height: 0.9;
+  color: var(--pink);
+  text-shadow: 0 0 60px rgba(255, 46, 147, 0.6);
+}
+
+.lead {
+  margin: 0;
+  max-width: 380px;
+  font-size: 20px;
+}
