@@ -12,13 +12,17 @@
     "check": "npm run lint && npm run typecheck && npm run test",
     "test:db": "vitest run --config vitest.db.config.ts",
     "seed": "node scripts/seed.mjs",
-    "db:reset": "supabase db reset"
+    "db:reset": "supabase db reset",
+    "door": "node --no-warnings --experimental-strip-types scripts/door.mjs"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.0",
+    "libphonenumber-js": "^1.13.16",
     "next": "^16.4.6",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

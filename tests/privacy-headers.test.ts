@@ -31,7 +31,7 @@ describe('crawler privacy', () => {
 
 describe('secret-bearing routes', () => {
   it('invite links never leak through the referrer', async () => {
-    expect(valueFor(await rules(), '/join/:path*', 'Referrer-Policy')).toBe('no-referrer');
+    expect(valueFor(await rules(), '/j/:path*', 'Referrer-Policy')).toBe('no-referrer');
   });
 
   it('api responses are not cached', async () => {

@@ -1,12 +1,6 @@
-import styles from './page.module.css';
+import { redirect } from 'next/navigation';
 
-// placeholder landing page, replaced by the apply flow in M2
+// the proxy sends signed-in members to /plans; visitors land on the apply form
 export default function Home() {
-  return (
-    <main className={styles.main}>
-      <p className={styles.kicker}>closed club · bcn</p>
-      <h1 className={styles.title}>mesa</h1>
-      <p className={styles.lead}>a closed girls club in barcelona. coming soon.</p>
-    </main>
-  );
+  redirect('/apply');
 }
