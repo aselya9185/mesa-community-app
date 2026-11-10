@@ -287,3 +287,93 @@
   font-weight: 700;
   color: var(--muted);
 }
+
+/* plan | chat tabs on phones and tablets; on desktop the chat is docked beside the plan */
+.wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin: 8px 20px 0;
+  padding: 4px;
+  border-radius: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.tab {
+  flex: 1;
+  height: 40px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.tabOn {
+  background: var(--pink);
+  color: var(--black);
+  font-weight: 700;
+}
+
+.chatCol {
+  height: calc(100dvh - 176px);
+  min-height: 420px;
+  margin: 12px 12px 0;
+}
+
+.lockedCol {
+  display: none;
+}
+
+.wrap[data-tab='plan'] .chatCol {
+  display: none;
+}
+
+.wrap[data-tab='chat'] .detailCol {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .tabs {
+    margin: 12px 20px 0;
+  }
+  .chatCol {
+    height: calc(100dvh - 92px);
+    margin: 12px 12px 12px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .wrap {
+    flex-direction: row;
+    height: 100dvh;
+  }
+  .tabs {
+    display: none;
+  }
+  .detailCol {
+    flex: 0 0 480px;
+    overflow-y: auto;
+    height: 100dvh;
+  }
+  .wrap[data-tab='chat'] .detailCol,
+  .wrap[data-tab='plan'] .detailCol {
+    display: block;
+  }
+  .chatCol,
+  .wrap[data-tab='plan'] .chatCol,
+  .lockedCol {
+    display: block;
+    flex: 1;
+    min-width: 0;
+    height: calc(100dvh - 32px);
+    margin: 16px 16px 16px 4px;
+  }
+}

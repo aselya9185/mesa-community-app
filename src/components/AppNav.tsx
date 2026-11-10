@@ -18,7 +18,7 @@ function isActive(path: string, href: string): boolean {
 }
 
 /** mobile: floating pill bar at the bottom. tablet/desktop: vertical rail on the left. */
-export function AppNav() {
+export function AppNav({ unreadChats = 0 }: { unreadChats?: number }) {
   const path = usePathname();
   return (
     <nav aria-label="main" className={styles.nav}>
@@ -33,6 +33,11 @@ export function AppNav() {
                   <path d={i.d} />
                 </svg>
                 <span>{i.label}</span>
+                {i.href === '/chats' && unreadChats > 0 && (
+                  <span className={styles.dot} aria-label={`${unreadChats} unread`}>
+                    {unreadChats > 9 ? '9+' : unreadChats}
+                  </span>
+                )}
               </Link>
             </li>
           );

@@ -7,15 +7,18 @@ import { ShareButton } from '@/components/ShareButton';
 import { requireMember } from '@/lib/auth';
 import { BookingSection, GiveButton } from '@/components/BookingSection';
 import { PollSection } from '@/components/PollSection';
+import { ChatPanel, LockedChat, type ChatMessage } from '@/components/ChatPanel';
 import { getExtras, getPlan, mapsLink } from '@/lib/plans';
+import { supabaseServer } from '@/lib/supabase/server';
 import { dayParts } from '@/lib/time';
 import { cancelPlanAction, joinPlanAction, leavePlanAction, removeFromPlanAction } from '../actions';
 import styles from './detail.module.css';
 
 export const metadata: Metadata = { title: 'plan · mesa' };
 
-export default async function PlanPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PlanPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string }> }) {
   const { id } = await params;
+  const { tab } = await searchParams;
   const me = await requireMember();
   const plan = await getPlan(id);
   if (!plan) notFound();
@@ -29,8 +32,34 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   const started = new Date(plan.starts_at) <= new Date();
   const others = plan.going.filter((g) => g.id !== plan.host_id);
   const canJoin = !cancelled && !started && !iAmIn;
+  const activeTab = iAmIn && tab === 'chat' ? 'chat' : 'plan';
 
-  return (
+  // chat: only for people who are going (the database enforces it; this just avoids asking for nothing)
+  let initial: ChatMessage[] = [];
+  const names: Record<string, string> = Object.fromEntries(plan.going.map((g) => [g.id, g.name]));
+  if (iAmIn) {
+    const supabase = await supabaseServer();
+    const { data } = await supabase.from('plan_messages').select('id, sender_id, kind, event, body, created_at').eq('plan_id', plan.id).order('created_at', { ascending: false }).limit(100);
+    initial = ((data ?? []) as ChatMessage[]).reverse();
+    const unknown = [...new Set(initial.map((m) => m.sender_id).filter((x): x is string => !!x && !names[x]))];
+    if (unknown.length) {
+      const { data: profs } = await supabase.from('profiles').select('id, name').in('id', unknown);
+      for (const p of profs ?? []) names[p.id as string] = p.name as string;
+    }
+  }
+  const chatStatus = !plan.booking_url
+    ? 'no booking needed'
+    : extras.myState === 'covered'
+      ? 'you got the +1'
+      : extras.myState === 'booked'
+        ? 'you booked'
+        : extras.plusOne === 'taken'
+          ? 'someone else got the +1'
+          : extras.plusOne === 'pending'
+            ? 'waiting for +1 approval'
+            : null;
+
+  const article = (
     <article className={styles.page}>
       <Link href="/plans" className={styles.back} aria-label="back to plans">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -189,5 +218,37 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
         )}
       </div>
     </article>
+  );
+
+  return (
+    <div className={styles.wrap} data-tab={activeTab}>
+      {iAmIn && (
+        <nav className={styles.tabs} aria-label="plan sections">
+          <Link href={`/plans/${plan.id}`} className={`${styles.tab} ${activeTab === 'plan' ? styles.tabOn : ''}`} aria-current={activeTab === 'plan' ? 'page' : undefined}>
+            plan
+          </Link>
+          <Link href={`/plans/${plan.id}?tab=chat`} className={`${styles.tab} ${activeTab === 'chat' ? styles.tabOn : ''}`} aria-current={activeTab === 'chat' ? 'page' : undefined}>
+            chat
+          </Link>
+        </nav>
+      )}
+      <div className={styles.detailCol}>{article}</div>
+      <div className={iAmIn ? styles.chatCol : styles.lockedCol}>
+        {iAmIn ? (
+          <ChatPanel
+            planId={plan.id}
+            meId={me.id}
+            initial={initial}
+            names={names}
+            goingCount={plan.going.length}
+            status={chatStatus}
+            canPost={!cancelled}
+            closedNote="this plan was cancelled, so the chat is closed."
+          />
+        ) : (
+          <LockedChat />
+        )}
+      </div>
+    </div>
   );
 }
