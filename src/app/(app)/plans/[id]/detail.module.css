@@ -1,0 +1,272 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 20px 24px;
+  max-width: 640px;
+}
+
+.back {
+  width: var(--touch);
+  height: var(--touch);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: -10px;
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.pillIn,
+.pillHost,
+.pillCancelled {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 15px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--black);
+}
+
+.pillIn {
+  background: var(--pink);
+}
+
+.pillHost {
+  background: var(--pink-pale);
+}
+
+.pillCancelled {
+  background: var(--muted);
+}
+
+.title {
+  font-size: 38px;
+}
+
+.hostLine {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.banner {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--border-dashed);
+  border-radius: 16px;
+  color: var(--pink-pale);
+  font-size: 14px;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+.cardText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 15px;
+}
+
+.muted {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.iconPink {
+  color: var(--pink-soft);
+  display: flex;
+}
+
+.inlineLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--pink-soft);
+}
+
+.sectionTitle {
+  font-family: var(--font-body);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 4px 0 8px;
+  line-height: 1.2;
+}
+
+.going {
+  display: flex;
+  flex-direction: column;
+}
+
+.people {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.person {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px 0 8px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.iconBtn {
+  width: var(--touch);
+  height: var(--touch);
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  margin-bottom: 8px;
+  border: 1px dashed var(--border-dashed);
+  border-radius: var(--radius-card);
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.empty strong {
+  color: var(--text);
+  font-size: 16px;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.join {
+  width: 100%;
+  min-height: 56px;
+  border-radius: 28px;
+  border: 0;
+  background: var(--pink);
+  color: var(--black);
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--glow-strong);
+}
+
+.hostTools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.btnGhost,
+.btnQuiet,
+.btnPrimary {
+  min-height: var(--touch);
+  padding: 0 18px;
+  border-radius: 22px;
+  font-size: 14px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.btnGhost {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.btnQuiet {
+  background: transparent;
+  border: 1px solid var(--border-dashed);
+  color: var(--muted);
+}
+
+.btnPrimary {
+  border: 0;
+  background: var(--pink);
+  color: var(--black);
+}
+
+.leave {
+  align-self: flex-start;
+  min-height: var(--touch);
+  padding: 0 4px;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+@media (min-width: 768px) {
+  .back {
+    display: none;
+  }
+  .page {
+    padding: 22px 24px 32px;
+  }
+  .title {
+    font-size: 34px;
+  }
+}

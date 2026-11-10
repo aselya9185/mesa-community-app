@@ -1,0 +1,97 @@
+.card {
+  display: flex;
+  gap: 14px;
+  align-items: stretch;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+.cardSelected {
+  border-color: var(--pink);
+  box-shadow: 0 0 0 1px var(--pink), 0 0 32px rgba(255, 46, 147, 0.35);
+}
+
+.date {
+  width: 64px;
+  flex: none;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0;
+  background-size: 48px 48px;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+
+.dow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.dayNum {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-size: 30px;
+  line-height: 1.02;
+}
+
+.cardBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cardText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tag {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--pink);
+}
+
+.cardTitle {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.cardMeta {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.cardFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.avatars {
+  display: flex;
+}
+
+.footMine {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--pink-soft);
+}
+
+.footMuted {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+}

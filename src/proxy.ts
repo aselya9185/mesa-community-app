@@ -22,7 +22,8 @@ export async function proxy(request: NextRequest) {
   const isPublic = PUBLIC.some((p) => path === p || path.startsWith(p.endsWith('/') ? p : p + '/'));
 
   if (!data.user && !isPublic && path !== '/') {
-    return redirectWithCookies(request, response, '/login');
+    const next = path + request.nextUrl.search;
+    return redirectWithCookies(request, response, `/login?next=${encodeURIComponent(next)}`);
   }
   if (data.user && (path === '/' || path === '/login' || path === '/apply')) {
     return redirectWithCookies(request, response, '/plans');

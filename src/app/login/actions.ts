@@ -6,6 +6,7 @@ import { ipHash } from '@/lib/request';
 import { supabaseServer } from '@/lib/supabase/server';
 import { supabaseService } from '@/lib/supabase/service';
 import { loginAllowed } from '@/server/login';
+import { safeNext } from '@/lib/time';
 
 export type LoginState = { error: 'wrong' | 'rate_limited'; whatsapp: string } | null;
 
@@ -21,7 +22,7 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
   const supabase = await supabaseServer();
   const { error } = await supabase.auth.signInWithPassword({ email: loginEmail(e164), password });
   if (error) return { error: 'wrong', whatsapp: typed };
-  redirect('/plans');
+  redirect(safeNext(String(formData.get('next') ?? '')));
 }
 
 export async function logoutAction() {

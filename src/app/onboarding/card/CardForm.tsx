@@ -6,12 +6,13 @@ import type { Me } from '@/lib/auth';
 import { LIKES } from '@/lib/likes';
 import { saveCardAction, type CardState } from './actions';
 
-export function CardForm({ me }: { me: Me }) {
+export function CardForm({ me, next = '/plans', heading = 'make your card' }: { me: Me; next?: string; heading?: string }) {
   const [state, action, pending] = useActionState<CardState, FormData>(saveCardAction, null);
   const errors = state?.errors;
   return (
     <form action={action} className={styles.form}>
-      <h1 className={styles.title}>make your card</h1>
+      <input type="hidden" name="next" value={next} />
+      <h1 className={styles.title}>{heading}</h1>
       <p className={styles.sub}>this is how members see you. your whatsapp number never shows here.</p>
 
       <div className={styles.field}>

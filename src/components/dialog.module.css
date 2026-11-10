@@ -1,0 +1,57 @@
+.dialog {
+  width: min(400px, calc(100vw - 32px));
+  border: 1px solid var(--border);
+  border-radius: 30px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 26px;
+  box-shadow: 0 0 60px rgba(255, 46, 147, 0.28);
+}
+
+.dialog::backdrop {
+  background: rgba(14, 10, 15, 0.78);
+}
+
+.dialog[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.title {
+  font-size: 30px;
+}
+
+.body {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.confirm,
+.cancel {
+  min-height: 52px;
+  border-radius: 26px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.confirm {
+  margin-top: 4px;
+  border: 0;
+  background: var(--pink);
+  color: var(--black);
+}
+
+.cancel {
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text);
+}
+
+.confirm:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}

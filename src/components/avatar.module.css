@@ -1,0 +1,15 @@
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  font-weight: 700;
+  color: var(--black);
+  border: 2px solid var(--black);
+  box-sizing: border-box;
+}
+
+.overlap + .overlap,
+.avatar.overlap:not(:first-child) {
+  margin-left: -10px;
+}

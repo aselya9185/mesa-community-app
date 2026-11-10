@@ -10,6 +10,7 @@ export type Me = {
   likes: string[];
   trains_at: string[];
   member_no: number;
+  member_code: string;
   role: 'member' | 'admin';
 };
 
@@ -20,7 +21,7 @@ export async function requireMember(): Promise<Me> {
   if (!auth.user) redirect('/login');
   const { data: me } = await supabase
     .from('profiles')
-    .select('id, name, instagram, area, bio, likes, trains_at, member_no, role')
+    .select('id, name, instagram, area, bio, likes, trains_at, member_no, member_code, role')
     .eq('id', auth.user.id)
     .maybeSingle();
   if (!me) {

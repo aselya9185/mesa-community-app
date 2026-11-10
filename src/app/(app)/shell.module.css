@@ -1,0 +1,21 @@
+.shell {
+  min-height: 100dvh;
+}
+
+.content {
+  /* room for the floating bar on phones */
+  padding-bottom: 104px;
+}
+
+@media (min-width: 768px) {
+  .content {
+    padding: 0 0 0 100px;
+    height: 100dvh;
+  }
+}
+
+@media (min-width: 1200px) {
+  .content {
+    padding-left: 120px;
+  }
+}

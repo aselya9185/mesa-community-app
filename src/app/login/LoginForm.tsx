@@ -5,10 +5,11 @@ import { useActionState } from 'react';
 import styles from '@/components/auth.module.css';
 import { loginAction, type LoginState } from './actions';
 
-export function LoginForm() {
+export function LoginForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState<LoginState, FormData>(loginAction, null);
   return (
     <form action={action} className={styles.form}>
+      {next && <input type="hidden" name="next" value={next} />}
       <h1 className={styles.title}>welcome back</h1>
       <div className={styles.field}>
         <label htmlFor="whatsapp" className={styles.label}>

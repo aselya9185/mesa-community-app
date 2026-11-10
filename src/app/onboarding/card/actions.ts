@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { displayHandle, isValidHandle } from '@/lib/instagram';
 import { LIKES } from '@/lib/likes';
 import { supabaseServer } from '@/lib/supabase/server';
+import { safeNext } from '@/lib/time';
 
 const schema = z.object({
   name: z.string().trim().min(1, 'tell us your name').max(60),
@@ -50,5 +51,5 @@ export async function saveCardAction(_prev: CardState, formData: FormData): Prom
     })
     .eq('id', auth.user.id);
   if (error) return { errors: { name: 'could not save your card. try again.' } };
-  redirect('/plans');
+  redirect(safeNext(get('next')));
 }

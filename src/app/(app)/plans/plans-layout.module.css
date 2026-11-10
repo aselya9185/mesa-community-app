@@ -1,0 +1,20 @@
+.split {
+  min-height: 100dvh;
+}
+
+.pane {
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .split {
+    display: flex;
+    height: 100dvh;
+    min-height: 0;
+  }
+  .pane {
+    flex: 1;
+    height: 100dvh;
+    overflow-y: auto;
+  }
+}

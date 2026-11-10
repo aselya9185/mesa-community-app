@@ -1,0 +1,148 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 28px 20px 24px;
+  max-width: 480px;
+}
+
+.heading {
+  font-size: 46px;
+}
+
+.card {
+  border-radius: 32px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  overflow: hidden;
+  box-shadow: 0 0 40px rgba(255, 46, 147, 0.18);
+}
+
+.banner {
+  height: 112px;
+  padding: 14px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background-size: 56px 56px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+
+.body {
+  padding: 0 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.who {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  margin-top: -34px;
+}
+
+.who > span {
+  border-width: 4px;
+  border-color: var(--surface);
+}
+
+.name {
+  font-size: 32px;
+  line-height: 1.05;
+}
+
+.handle {
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--pink-soft);
+}
+
+.bio {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.label {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 6px;
+  line-height: 1.2;
+}
+
+.chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  min-height: 32px;
+  padding: 0 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+}
+
+.chipOn {
+  background: var(--pink);
+  border-color: var(--pink);
+  color: var(--black);
+  font-weight: 700;
+}
+
+.buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.buttons > * {
+  flex: 1;
+}
+
+.ghost {
+  min-height: 48px;
+  border-radius: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.logout {
+  align-self: flex-start;
+  min-height: var(--touch);
+  padding: 0 4px;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
