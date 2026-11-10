@@ -32,5 +32,6 @@ npx supabase start   # local Supabase (needs Docker Desktop running)
 
 - Tests first for security (see `docs/PLAN.md` §9). Each milestone: write tests, implement, run `npm run check`, commit with a clear message, summarise.
 - All DB changes are migrations under `supabase/migrations`. Security rules live in the database, not only in the UI.
+- `invites` has a column-level grant (no `token_hash`): `select('*')` on it errors for every client, so always list columns.
 - Never import the service client from client code. Never log tokens, numbers or passwords.
 - Copy follows the lowercase house style; see the appendix in `docs/PLAN.md` for undesigned states.

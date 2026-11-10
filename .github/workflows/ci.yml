@@ -21,3 +21,16 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test
+
+  db:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # only the services the tests need keep CI fast; realtime/storage join in later milestones
+      - run: npx supabase start -x storage-api,imgproxy,studio,edge-runtime,vector,logflare,mailpit,postgres-meta,realtime
+      - run: npm run test:db

@@ -1,0 +1,45 @@
+import { execSync } from 'node:child_process';
+import { createClient } from '@supabase/supabase-js';
+
+// Dev scripts talk to Supabase with the service role. Local stack by default; for a real
+// project set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in your shell (never commit them).
+export function service() {
+  let url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  let key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    const out = execSync('npx supabase status -o env', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    const env = Object.fromEntries(
+      out
+        .split('\n')
+        .map((l) => l.match(/^([A-Z_]+)="?(.*?)"?$/))
+        .filter(Boolean)
+        .map((m) => [m[1], m[2]]),
+    );
+    url = url ?? env.API_URL;
+    key = key ?? env.SERVICE_ROLE_KEY;
+  }
+  if (!url || !key) throw new Error('no supabase url/key: is `npx supabase start` running?');
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+
+export const loginEmail = (phone) => `${phone.replace(/\D/g, '')}@members.mesa.invalid`;
+
+/** create (or reuse) an auth user + profile + private number. Returns the user id. */
+export async function upsertMember(svc, { phone, password, name, instagram, role = 'member', area = null, likes = [], trains_at = [], bio = null }) {
+  const email = loginEmail(phone);
+  let id;
+  const created = await svc.auth.admin.createUser({ email, password, email_confirm: true });
+  if (created.error) {
+    const { data } = await svc.from('member_private').select('user_id').eq('whatsapp_e164', phone).maybeSingle();
+    if (!data) throw created.error;
+    id = data.user_id;
+    await svc.auth.admin.updateUserById(id, { password });
+  } else {
+    id = created.data.user.id;
+  }
+  const p = await svc.from('profiles').upsert({ id, name, instagram, role, status: 'active', area, likes, trains_at, bio });
+  if (p.error) throw p.error;
+  const m = await svc.from('member_private').upsert({ user_id: id, whatsapp_e164: phone });
+  if (m.error) throw m.error;
+  return id;
+}
