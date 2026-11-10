@@ -18,6 +18,7 @@ export default async function EditPlanPage({ params }: { params: Promise<{ id: s
   return (
     <PlanForm
       heading="edit plan"
+      mode="edit"
       submitLabel="save changes"
       action={updatePlanAction.bind(null, id)}
       cancelHref={`/plans/${id}`}

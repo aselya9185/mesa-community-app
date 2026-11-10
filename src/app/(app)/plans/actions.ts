@@ -29,7 +29,12 @@ const DB_MESSAGES: Record<string, [keyof NonNullable<PlanFormState>['errors'], s
 
 function read(formData: FormData) {
   const get = (k: string) => String(formData.get(k) ?? '');
-  return { title: get('title'), place: get('place'), maps: get('maps'), booking: get('booking'), date: get('date'), time: get('time'), plus: get('plus') === 'on' };
+  return {
+    title: get('title'), place: get('place'), maps: get('maps'), booking: get('booking'), date: get('date'), time: get('time'),
+    plus: get('plus') === 'on',
+    booked: get('booked') === 'yes',
+    poll: [...formData.getAll('poll').map(String), get('pollCustom')].map((l) => l.trim()).filter(Boolean),
+  };
 }
 
 function validate(raw: ReturnType<typeof read>): { ok: true; startsAt: string } | { ok: false; errors: NonNullable<PlanFormState>['errors'] } {
@@ -48,7 +53,7 @@ function validate(raw: ReturnType<typeof read>): { ok: true; startsAt: string } 
   return { ok: true, startsAt };
 }
 
-const echo = (raw: ReturnType<typeof read>): Record<string, string> => ({ title: raw.title, place: raw.place, maps: raw.maps, booking: raw.booking, date: raw.date, time: raw.time, plus: raw.plus ? 'on' : '' });
+const echo = (raw: ReturnType<typeof read>): Record<string, string> => ({ title: raw.title, place: raw.place, maps: raw.maps, booking: raw.booking, date: raw.date, time: raw.time, plus: raw.plus ? 'on' : '', booked: raw.booked ? 'yes' : 'no', pollCustom: raw.poll.filter((l) => !['matcha', 'coffee', 'a walk', 'brunch'].includes(l.toLowerCase())).join(', '), poll: raw.poll.join('|') });
 
 export async function createPlanAction(_prev: PlanFormState, formData: FormData): Promise<PlanFormState> {
   const raw = read(formData);
@@ -63,6 +68,8 @@ export async function createPlanAction(_prev: PlanFormState, formData: FormData)
     p_maps_url: raw.maps || null,
     p_booking_url: raw.booking || null,
     p_free_plus_one: raw.plus,
+    p_host_booked: raw.booked && !!raw.booking,
+    p_poll: raw.poll,
   });
   if (error || !data) {
     const [field, msg] = DB_MESSAGES[error?.message ?? ''] ?? ['form', 'something went wrong. try again.'];
@@ -114,4 +121,49 @@ export async function removeFromPlanAction(planId: string, userId: string) {
   const supabase = await supabaseServer();
   await supabase.rpc('remove_from_plan', { p_plan: planId, p_user: userId });
   revalidatePath('/plans', 'layout');
+}
+
+
+// ---- booking, +1, poll ----------------------------------------------------------------
+
+async function run(fn: (s: Awaited<ReturnType<typeof supabaseServer>>) => PromiseLike<{ error: { message: string } | null }>) {
+  const supabase = await supabaseServer();
+  const { error } = await fn(supabase);
+  revalidatePath('/plans', 'layout');
+  return error?.message ?? null;
+}
+
+export async function setBookingAction(planId: string, booked: boolean) {
+  await run((s) => s.rpc('set_booking', { p_plan: planId, p_booked: booked }));
+}
+
+export async function assignPlusOneAction(planId: string, userId: string) {
+  await run((s) => s.rpc('assign_plus_one', { p_plan: planId, p_user: userId }));
+}
+
+export async function revokePlusOneAction(planId: string) {
+  await run((s) => s.rpc('revoke_plus_one', { p_plan: planId }));
+}
+
+export async function voteAction(planId: string, optionId: string) {
+  await run((s) => s.rpc('vote_plan', { p_plan: planId, p_option: optionId }));
+}
+
+export async function clearVoteAction(planId: string) {
+  await run((s) => s.rpc('clear_vote', { p_plan: planId }));
+}
+
+export type AddOptionState = { error: string; value: string } | null;
+const OPTION_ERRORS: Record<string, string> = {
+  duplicate_option: 'that one is already on the list',
+  one_option_each: 'you already added one',
+  too_many_options: 'the list is full',
+  bad_label: 'keep it between 1 and 30 characters',
+};
+
+export async function addOptionAction(planId: string, _prev: AddOptionState, formData: FormData): Promise<AddOptionState> {
+  const label = String(formData.get('label') ?? '');
+  const err = await run((s) => s.rpc('add_poll_option', { p_plan: planId, p_label: label }));
+  if (err) return { error: OPTION_ERRORS[err] ?? 'could not add it. try again.', value: label };
+  return null;
 }

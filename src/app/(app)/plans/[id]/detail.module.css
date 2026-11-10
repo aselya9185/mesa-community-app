@@ -270,3 +270,20 @@
     font-size: 34px;
   }
 }
+
+.badge {
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pink-soft);
+  border: 1px solid var(--pink);
+  border-radius: 10px;
+  padding: 1px 7px;
+}
+
+.state {
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}

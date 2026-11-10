@@ -1,0 +1,125 @@
+.poll {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.title {
+  font-family: var(--font-body);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  line-height: 1.2;
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.option {
+  position: relative;
+  width: 100%;
+  min-height: var(--touch);
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.mine {
+  border: 1.5px solid var(--pink);
+}
+
+.locked {
+  color: var(--muted);
+  cursor: default;
+}
+
+.bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(255, 46, 147, 0.22);
+}
+
+.label,
+.count {
+  position: relative;
+}
+
+.count {
+  color: var(--pink-soft);
+}
+
+.add {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.addLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.addRow {
+  display: flex;
+  gap: 8px;
+}
+
+.addInput {
+  flex: 1;
+  min-width: 0;
+  height: var(--touch);
+  border-radius: 18px;
+  border: 1px dashed var(--border-dashed);
+  background: transparent;
+  color: var(--text);
+  padding: 0 14px;
+  font-size: 15px;
+}
+
+.addBtn {
+  min-height: var(--touch);
+  padding: 0 18px;
+  border-radius: 22px;
+  border: 1.5px solid var(--pink);
+  background: transparent;
+  color: var(--pink-soft);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.addError {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pink-pale);
+}

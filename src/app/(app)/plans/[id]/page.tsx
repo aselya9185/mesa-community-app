@@ -5,7 +5,9 @@ import { Avatar } from '@/components/Avatar';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ShareButton } from '@/components/ShareButton';
 import { requireMember } from '@/lib/auth';
-import { getPlan, mapsLink } from '@/lib/plans';
+import { BookingSection, GiveButton } from '@/components/BookingSection';
+import { PollSection } from '@/components/PollSection';
+import { getExtras, getPlan, mapsLink } from '@/lib/plans';
 import { dayParts } from '@/lib/time';
 import { cancelPlanAction, joinPlanAction, leavePlanAction, removeFromPlanAction } from '../actions';
 import styles from './detail.module.css';
@@ -18,6 +20,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   const plan = await getPlan(id);
   if (!plan) notFound();
 
+  const extras = await getExtras(plan, me.id);
   const d = dayParts(plan.starts_at);
   const isHost = plan.host_id === me.id;
   const iAmIn = plan.going.some((g) => g.id === me.id);
@@ -92,17 +95,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
         </div>
       )}
 
-      {plan.booking_url && iAmIn && !cancelled && (
-        <div className={styles.card}>
-          <div className={styles.cardText}>
-            <strong>book your spot</strong>
-            <span className={styles.muted}>this plan takes bookings on its own page.</span>
-          </div>
-          <a href={plan.booking_url} target="_blank" rel="noopener noreferrer" className={styles.btnPrimary}>
-            book your spot
-          </a>
-        </div>
-      )}
+      <BookingSection plan={plan} extras={extras} isHost={isHost} iAmIn={iAmIn} />
 
       <section aria-labelledby="going-h" className={styles.going}>
         <h2 id="going-h" className={styles.sectionTitle}>
@@ -121,6 +114,15 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
               <span className={styles.name}>
                 {g.id === me.id ? `you · ${g.name.toLowerCase()}` : g.id === plan.host_id ? `${g.name.toLowerCase()} · host` : g.name.toLowerCase()}
               </span>
+              {plan.booking_url && iAmIn && !cancelled && !isHost && extras.badges[g.id] === 'booked' && <span className={styles.badge}>✓ booked</span>}
+              {isHost && plan.booking_url && !cancelled && (
+                <span className={styles.state}>
+                  {extras.hostView?.states[g.id] === 'covered' ? 'has the +1' : extras.hostView?.states[g.id] === 'booked' ? 'booked' : 'not booked'}
+                </span>
+              )}
+              {isHost && plan.free_plus_one && plan.booking_url && !cancelled && !extras.hostView?.holder && g.id !== me.id && extras.hostView?.states[g.id] === 'not_booked' && (
+                <GiveButton planId={plan.id} userId={g.id} name={g.name.toLowerCase()} />
+              )}
               {isHost && g.id !== me.id && !cancelled && (
                 <ConfirmDialog
                   trigger={
@@ -141,6 +143,8 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           ))}
         </ul>
       </section>
+
+      <PollSection planId={plan.id} options={extras.poll} iAmIn={iAmIn} canAdd={extras.canAddOption} cancelled={cancelled} />
 
       <div className={styles.actions}>
         {canJoin && (

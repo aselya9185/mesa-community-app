@@ -1,0 +1,169 @@
+.card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+.plus {
+  border-color: var(--pink);
+  box-shadow: 0 0 28px rgba(255, 46, 147, 0.18);
+}
+
+.text,
+.stack {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 15px;
+}
+
+.stack {
+  gap: 8px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 16px;
+}
+
+.muted {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.pink {
+  color: var(--pink-soft);
+}
+
+.chip {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 14px;
+  border: 1px solid var(--pink);
+  color: var(--pink-soft);
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+}
+
+.chipOn {
+  background: var(--pink);
+  color: var(--black);
+}
+
+.buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.buttons > * {
+  flex: 1;
+}
+
+.primary,
+.outline,
+.ghost,
+.give,
+.covered {
+  min-height: var(--touch);
+  padding: 0 16px;
+  border-radius: 22px;
+  font-size: 14px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.buttons form button {
+  width: 100%;
+}
+
+.primary {
+  background: var(--pink);
+  color: var(--black);
+  border: 0;
+}
+
+.outline {
+  background: transparent;
+  border: 1.5px solid var(--pink);
+  color: var(--pink-soft);
+}
+
+.outlineOn {
+  background: rgba(255, 46, 147, 0.18);
+}
+
+.covered {
+  border: 1.5px solid var(--pink);
+  color: var(--pink-soft);
+  cursor: default;
+}
+
+.ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.give {
+  background: transparent;
+  border: 1.5px solid var(--pink);
+  color: var(--pink-soft);
+  min-height: var(--touch);
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.switch {
+  width: 56px;
+  height: var(--touch);
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.switch span {
+  width: 52px;
+  height: 30px;
+  border-radius: 15px;
+  background: var(--border);
+  display: flex;
+  align-items: center;
+  padding: 3px;
+  box-sizing: border-box;
+}
+
+.switch span::after {
+  content: '';
+  width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--black);
+  transition: transform 0.15s;
+}
+
+.switchOn span {
+  background: var(--pink);
+}
+
+.switchOn span::after {
+  transform: translateX(22px);
+}

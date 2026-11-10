@@ -8,6 +8,8 @@ import styles from './plan-form.module.css';
 
 export type PlanDefaults = { title: string; place: string; maps: string; booking: string; date: string; time: string; plus: boolean };
 
+const POLL_DEFAULTS = ['matcha', 'coffee', 'a walk', 'brunch'];
+
 type Action = (prev: PlanFormState, formData: FormData) => Promise<PlanFormState>;
 
 /** phone: three small steps (what / when / last touches). tablet+: all on one page with a live preview. */
@@ -18,6 +20,7 @@ export function PlanForm({
   heading = 'drop a plan',
   minDate,
   cancelHref = '/plans',
+  mode = 'create',
 }: {
   defaults: PlanDefaults;
   action?: Action;
@@ -25,6 +28,7 @@ export function PlanForm({
   heading?: string;
   minDate: string;
   cancelHref?: string;
+  mode?: 'create' | 'edit';
 }) {
   const [state, formAction, pending] = useActionState<PlanFormState, FormData>(action, null);
   const [step, setStep] = useState(1);
@@ -33,6 +37,9 @@ export function PlanForm({
   const plus = state ? state.values.plus === 'on' : defaults.plus;
   const [title, setTitle] = useState(defaults.title);
   const [place, setPlace] = useState(defaults.place);
+  const [booking, setBooking] = useState(defaults.booking);
+  const pollChecked = state ? (state.values.poll ?? '').split('|').map((l) => l.toLowerCase()) : POLL_DEFAULTS;
+  const hostBooked = state ? state.values.booked === 'yes' : false;
 
   // after an error, jump back to the step that has it
   const errStep = e.title || e.place || e.maps ? 1 : e.when || e.booking ? 2 : 0;
@@ -103,7 +110,7 @@ export function PlanForm({
           <label htmlFor="booking" className={authStyles.label}>
             booking link <span className={authStyles.optional}>(optional)</span>
           </label>
-          <input id="booking" name="booking" type="url" inputMode="url" className={authStyles.input} defaultValue={v('booking')} aria-invalid={!!e.booking} />
+          <input id="booking" name="booking" type="url" inputMode="url" className={authStyles.input} defaultValue={v('booking')} onChange={(ev) => setBooking(ev.target.value)} aria-invalid={!!e.booking} />
           <span className={e.booking ? authStyles.error : authStyles.hint}>{e.booking ?? 'any page where people book: a gym, classpass, a tasting… no link means no booking step.'}</span>
         </div>
       </fieldset>
@@ -119,6 +126,38 @@ export function PlanForm({
           </span>
           <input type="checkbox" name="plus" role="switch" defaultChecked={plus} className={styles.switch} />
         </label>
+        {mode === 'create' && booking.trim() && (
+          <fieldset className={styles.radios}>
+            <legend className={authStyles.label}>have you booked yet?</legend>
+            <label className={styles.radio}>
+              <input type="radio" name="booked" value="yes" defaultChecked={hostBooked} />
+              <span>booked</span>
+            </label>
+            <label className={styles.radio}>
+              <input type="radio" name="booked" value="no" defaultChecked={!hostBooked} />
+              <span>not yet</span>
+            </label>
+          </fieldset>
+        )}
+        {mode === 'create' && (
+          <fieldset className={styles.radios} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+            <legend className={authStyles.label}>plans after?</legend>
+            <div className={authStyles.chips}>
+              {POLL_DEFAULTS.map((l) => (
+                <label key={l} className={authStyles.chip}>
+                  <input type="checkbox" name="poll" value={l} defaultChecked={pollChecked.includes(l)} />
+                  <span>{l}</span>
+                </label>
+              ))}
+            </div>
+            <div className={authStyles.field}>
+              <label htmlFor="pollCustom" className={authStyles.label}>
+                add your own <span className={authStyles.optional}>(optional)</span>
+              </label>
+              <input id="pollCustom" name="pollCustom" className={authStyles.input} maxLength={30} defaultValue={state?.values.pollCustom ?? ''} placeholder="sunset walk" />
+            </div>
+          </fieldset>
+        )}
         {title.trim() && (
           <p className={styles.preview} aria-live="polite">
             <span className={authStyles.hint}>how it lands</span>
