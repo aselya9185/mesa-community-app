@@ -1,0 +1,86 @@
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+.line {
+  margin: 0;
+  font-size: 16px;
+}
+
+.reason {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.note {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.outline,
+.quiet {
+  min-height: var(--touch);
+  padding: 0 18px;
+  border-radius: 22px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.outline {
+  background: transparent;
+  border: 1.5px solid var(--pink);
+  color: var(--pink-soft);
+}
+
+.quiet {
+  background: transparent;
+  border: 1.5px solid var(--border);
+  color: var(--text);
+}
+
+.empty {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: 32px 16px;
+  border: 1px dashed var(--border-dashed);
+  border-radius: var(--radius-card);
+}
+
+.empty h2 {
+  font-size: 32px;
+}
+
+.empty p {
+  margin: 0;
+  color: var(--muted);
+  max-width: 300px;
+}

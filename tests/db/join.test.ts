@@ -101,6 +101,35 @@ describe('joining with an invite link', () => {
   });
 });
 
+describe('a removed member coming back', () => {
+  it('is reactivated with the new password; the old password stops working', async () => {
+    const gone = await makeUser({ name: 'Returner' });
+    await svc.from('profiles').update({ status: 'removed' }).eq('id', gone.id);
+    await svc.auth.admin.updateUserById(gone.id, { ban_duration: '876000h' }); // what removal does
+    const app = await makeApplication({ name: 'Returner', instagram: '@returner', whatsapp_e164: gone.phone, status: 'approved' });
+    const token = generateToken();
+    await insertInvite({ applicationId: app.id, purpose: 'invite', token });
+
+    const r = await redeemInvite(svc, token, 'welcome-back-2026', ip());
+    expect(r).toMatchObject({ ok: true, purpose: 'invite', userId: gone.id, phone: gone.phone });
+    expect((await svc.from('profiles').select('status').eq('id', gone.id).single()).data?.status).toBe('active');
+    expect((await svc.from('applications').select('profile_id').eq('id', app.id).single()).data?.profile_id).toBe(gone.id);
+    expect((await anonClient().auth.signInWithPassword({ email: loginEmail(gone.phone), password: gone.password })).error).not.toBeNull();
+    expect((await anonClient().auth.signInWithPassword({ email: loginEmail(gone.phone), password: 'welcome-back-2026' })).error).toBeNull();
+  });
+
+  it('an active member cannot be taken over by someone redeeming a link for her number', async () => {
+    const active = await makeUser({ name: 'Stay' });
+    const app = await makeApplication({ whatsapp_e164: active.phone, status: 'approved' });
+    const token = generateToken();
+    await insertInvite({ applicationId: app.id, purpose: 'invite', token });
+    expect(await redeemInvite(svc, token, 'attacker-password-1', ip())).toEqual({ ok: false, error: 'failed' });
+    expect((await anonClient().auth.signInWithPassword({ email: loginEmail(active.phone), password: active.password })).error).toBeNull();
+    expect((await anonClient().auth.signInWithPassword({ email: loginEmail(active.phone), password: 'attacker-password-1' })).error).not.toBeNull();
+    expect(await previewInvite(svc, token)).toMatchObject({ ok: true }); // link given back
+  });
+});
+
 describe('a password reset link', () => {
   it('sets a new password, closes the open request, and works once', async () => {
     const m = await makeUser();

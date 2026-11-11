@@ -97,7 +97,7 @@ async function createMember(svc: SupabaseClient, applicationId: string | null, p
   const phone = app.whatsapp_e164 as string;
 
   const { data: created, error } = await svc.auth.admin.createUser({ email: loginEmail(phone), password, email_confirm: true });
-  if (error || !created.user) return null; // e.g. she is already a member
+  if (error || !created.user) return reactivate(svc, app.id as string, phone, password, app.name as string, app.instagram as string);
   const userId = created.user.id;
 
   const fail = async () => {
@@ -110,6 +110,24 @@ async function createMember(svc: SupabaseClient, applicationId: string | null, p
   if (m.error) return fail();
   await svc.from('applications').update({ profile_id: userId }).eq('id', app.id);
   await svc.from('link_requests').update({ handled_at: new Date().toISOString() }).eq('application_id', app.id).is('handled_at', null);
+  return { userId, phone };
+}
+
+/**
+ * She was removed and is coming back with a new, approved request: bring her old account back.
+ * Only a REMOVED member qualifies: an active member can never be taken over this way.
+ */
+async function reactivate(svc: SupabaseClient, applicationId: string, phone: string, password: string, name: string, instagram: string) {
+  const { data: priv } = await svc.from('member_private').select('user_id').eq('whatsapp_e164', phone).maybeSingle();
+  if (!priv) return null;
+  const userId = priv.user_id as string;
+  const { data: prof } = await svc.from('profiles').select('status').eq('id', userId).single();
+  if (!prof || prof.status !== 'removed') return null;
+  const { error } = await svc.auth.admin.updateUserById(userId, { password, ban_duration: 'none' });
+  if (error) return null;
+  await svc.from('profiles').update({ status: 'active', name, instagram }).eq('id', userId);
+  await svc.from('applications').update({ profile_id: userId }).eq('id', applicationId);
+  await svc.from('link_requests').update({ handled_at: new Date().toISOString() }).eq('application_id', applicationId).is('handled_at', null);
   return { userId, phone };
 }
 

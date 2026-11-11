@@ -19,7 +19,7 @@ function isActive(path: string, href: string): boolean {
 }
 
 /** mobile: floating pill bar at the bottom. tablet/desktop: vertical rail on the left. */
-export function AppNav({ unreadChats = 0 }: { unreadChats?: number }) {
+export function AppNav({ unreadChats = 0, isAdmin = false, doorCount = 0 }: { unreadChats?: number; isAdmin?: boolean; doorCount?: number }) {
   const path = usePathname();
   return (
     <nav aria-label="main" className={styles.nav}>
@@ -44,6 +44,15 @@ export function AppNav({ unreadChats = 0 }: { unreadChats?: number }) {
           );
         })}
       </ul>
+      {isAdmin && (
+        <Link href="/admin/requests" className={`${styles.door} ${path.startsWith('/admin') ? styles.doorOn : ''}`} aria-label={doorCount > 0 ? `door list, ${doorCount} waiting` : 'door list'}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M6 21V4h12v17M3 21h18M14 12h.01" />
+          </svg>
+          <span>door</span>
+          {doorCount > 0 && <span className={styles.dot}>{doorCount > 9 ? '9+' : doorCount}</span>}
+        </Link>
+      )}
       <NotificationBell className={styles.railBell} />
     </nav>
   );

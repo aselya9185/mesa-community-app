@@ -129,3 +129,50 @@
     margin-top: auto;
   }
 }
+
+/* admin only: the door list. On phones it sits as a small pill above the bar. */
+.door {
+  position: absolute;
+  top: -52px;
+  right: 8px;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--pink-pale);
+  color: var(--black);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.door .dot {
+  top: -6px;
+  right: -4px;
+}
+
+.doorOn {
+  box-shadow: var(--glow-soft);
+}
+
+@media (min-width: 768px) {
+  .door {
+    position: relative;
+    top: auto;
+    right: auto;
+    width: 58px;
+    height: 54px;
+    padding: 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1px;
+    border-radius: 18px;
+    font-size: 12px;
+    margin-top: auto;
+    margin-bottom: 8px;
+  }
+  .door + .railBell {
+    margin-top: 0;
+  }
+}
