@@ -1,0 +1,110 @@
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.count {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.markAll {
+  min-height: var(--touch);
+  padding: 0 6px;
+  background: transparent;
+  border: 0;
+  color: var(--pink-soft);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.markAll:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item {
+  width: 100%;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  text-align: left;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+.icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  color: var(--pink-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.when {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--pink);
+  flex: none;
+}
+
+.empty {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 32px 16px;
+  border: 1px dashed var(--border-dashed);
+  border-radius: var(--radius-card);
+}
+
+.empty h2 {
+  font-size: 32px;
+}
+
+.empty p {
+  margin: 0;
+  color: var(--muted);
+}

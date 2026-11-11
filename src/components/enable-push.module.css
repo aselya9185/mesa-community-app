@@ -1,0 +1,53 @@
+.box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--pink);
+  border-radius: 20px;
+}
+
+.on {
+  border-color: var(--border);
+}
+
+.text {
+  flex: 1;
+  min-width: 200px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.btn {
+  min-height: var(--touch);
+  padding: 0 20px;
+  border-radius: 22px;
+  border: 0;
+  background: var(--pink);
+  color: var(--black);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.quiet {
+  min-height: var(--touch);
+  padding: 0 8px;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.error {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 13px;
+  color: var(--pink-pale);
+}

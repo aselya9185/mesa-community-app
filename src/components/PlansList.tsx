@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { NotificationBell } from './NotificationBell';
 import { PlanCard } from './PlanCard';
 import type { PlanRow } from '@/lib/plans';
 import styles from './plans-list.module.css';
@@ -23,12 +24,15 @@ export function PlansList({ plans, me }: { plans: PlanRow[]; me: string }) {
           </p>
           <h1 className={styles.title}>this week</h1>
         </div>
+        <div className={styles.actions}>
+          <NotificationBell className={styles.bellMobile} />
         <Link href="/plans/new" className={styles.drop}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
             <path d="M12 5v14M5 12h14" />
           </svg>
           drop
         </Link>
+        </div>
       </header>
 
       {plans.length === 0 ? (

@@ -9,6 +9,10 @@
   display: none;
 }
 
+.bellMobile {
+  display: inline-flex;
+}
+
 .head {
   display: flex;
   align-items: flex-start;
@@ -29,8 +33,15 @@
   font-size: 46px;
 }
 
-.drop {
+.actions {
   margin-top: 22px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.drop {
+  margin-top: 0;
   height: var(--touch);
   padding: 0 18px;
   border-radius: 22px;
@@ -110,8 +121,11 @@
   .title {
     font-size: 38px;
   }
-  .drop {
+  .actions {
     margin-top: 18px;
+  }
+  .bellMobile {
+    display: none;
   }
 }
 

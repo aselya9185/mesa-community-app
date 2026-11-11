@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { NotificationBell } from './NotificationBell';
 import styles from './nav.module.css';
 
 const ITEMS = [
@@ -43,6 +44,7 @@ export function AppNav({ unreadChats = 0 }: { unreadChats?: number }) {
           );
         })}
       </ul>
+      <NotificationBell className={styles.railBell} />
     </nav>
   );
 }

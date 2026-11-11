@@ -16,6 +16,7 @@ const config: NextConfig = {
       { source: '/:path*', headers: securityHeaders },
       // invite links carry a secret: never leak it through the referrer
       { source: '/j/:path*', headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }] },
+      { source: '/sw.js', headers: [{ key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' }, { key: 'Service-Worker-Allowed', value: '/' }] },
       { source: '/api/:path*', headers: [{ key: 'Cache-Control', value: 'no-store' }] },
     ];
   },

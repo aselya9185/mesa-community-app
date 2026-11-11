@@ -18,6 +18,8 @@ npx supabase start -x storage-api,imgproxy,studio,edge-runtime,vector,logflare,m
 npm run test:db      # security/RLS integration tests (needs the local stack)
 npm run seed         # dev admin + members + applications
 npm run door -- list|approve <+e164>|resend <+e164>   # dev stand-in for the admin door list
+node scripts/vapid.mjs                       # make VAPID keys + webhook secret for web push (copy into .env.local)
+node scripts/set-push-config.mjs <url>        # where the database sends push hand-offs (local: http://host.docker.internal:3000/api/push)
 ```
 
 ## Hard rules

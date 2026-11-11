@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { logoutAction } from '@/app/login/actions';
 import { Avatar } from '@/components/Avatar';
+import { NotificationBell } from '@/components/NotificationBell';
 import { ShareButton } from '@/components/ShareButton';
 import { requireMember } from '@/lib/auth';
 import styles from './card.module.css';
@@ -12,7 +13,10 @@ export default async function CardPage() {
   const me = await requireMember();
   return (
     <main className={styles.page}>
-      <h1 className={styles.heading}>your card</h1>
+      <div className={styles.headRow}>
+        <h1 className={styles.heading}>your card</h1>
+        <NotificationBell className={styles.bellMobile} />
+      </div>
       <article className={styles.card}>
         <div className={`${styles.banner} checker`}>
           <span>closed club · bcn</span>
