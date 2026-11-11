@@ -1,6 +1,6 @@
 # Mesa
 
-Invite-only, women-only community web app (PWA) for group outings in Barcelona. Plan: `docs/PLAN.md` (source of truth for architecture, RLS, milestones). UI source of truth: the "brat club" screens (mobile B*, plus the tablet/desktop canvas "Mesa tablet and desktop"). If anything is ambiguous or you must deviate from the design or these rules, **stop and ask** instead of guessing.
+Invite-only, women-only community web app (PWA) for group outings in Barcelona. Plan: `docs/PLAN.md` (kept on the developer's computer only, not in the repo; source of truth for architecture, RLS, milestones). UI source of truth: the "brat club" screens (mobile B*, plus the tablet/desktop canvas "Mesa tablet and desktop"). If anything is ambiguous or you must deviate from the design or these rules, **stop and ask** instead of guessing.
 
 ## Stack
 
@@ -18,6 +18,8 @@ npx supabase start -x imgproxy,studio,edge-runtime,vector,logflare,mailpit,postg
 npm run test:db      # security/RLS integration tests (needs the local stack)
 npm run seed         # dev admin + members + applications
 npm run door -- list|approve <+e164>|resend <+e164>   # dev stand-in for the admin door list
+node scripts/reset-admin-mfa.mjs             # lost phone: remove the admin's authenticator
+node scripts/erase-member.mjs                # erase one person's data (needs CONFIRM=erase)
 node scripts/vapid.mjs                       # make VAPID keys + webhook secret for web push (copy into .env.local)
 node scripts/set-push-config.mjs <url>        # where the database sends push hand-offs (local: http://host.docker.internal:3000/api/push)
 ```
@@ -26,7 +28,7 @@ node scripts/set-push-config.mjs <url>        # where the database sends push ha
 
 - **Zero running cost for v1.** No paid APIs, SMS or plans. Ask before adding any paid service or any dependency not already approved: `@supabase/supabase-js`, `@supabase/ssr`, `web-push`, `zod`, `libphonenumber-js`, `vitest` (+ the Supabase CLI as a dev dependency). No Playwright, Tailwind, PWA plugin or Turnstile.
 - **Notifications:** web push + in-app only. No WhatsApp/Instagram API.
-- **Privacy first.** RLS on every table. A logged-out, pending or removed user reads nothing. Members never see each other's WhatsApp numbers (only the admin does). `noindex` + `robots.txt` disallow-all. No secrets in the repo (`.env.example` only). The service-role key is server-only and used in exactly four places (apply form, token redeem + auth user create, admin auth actions, web push).
+- **Privacy first.** RLS on every table. A logged-out, pending or removed user reads nothing. Members never see each other's WhatsApp numbers (only the admin does). `noindex` + `robots.txt` disallow-all. No secrets in the repo (`.env.example` only). The service-role key is server-only and used only for: the apply form (+ its rate limits), token redeem + account creation, the login rate limiter, admin auth actions (banning a removed member), web push. A test fails if client code imports it.
 - **Auth:** Supabase Auth only (no hand-rolled hashing). Login = WhatsApp number + password. Users are created only via the admin API; public sign-up is disabled. Admin uses MFA (TOTP); `is_admin()` requires AAL2.
 - **Invites:** one-time token, >=32 random chars, only its SHA-256 hash is stored, 7 days, single use (atomic `UPDATE … WHERE used_at IS NULL AND expires_at > now()`). Reset link: 24 h. Reject never notifies.
 - **Plans:** a plan is any outing. No spots/capacity, no filters; the feed is the next 7 days. The +1 is assigned only by the host, only to a joined member who has not booked; others never see who got it. Booked badges stay visible (decided).
