@@ -14,7 +14,7 @@ npm run lint         # eslint
 npm run typecheck    # tsc --noEmit
 npm run test         # vitest run
 npm run check        # lint + typecheck + test (run before every commit)
-npx supabase start -x storage-api,imgproxy,studio,edge-runtime,vector,logflare,mailpit,postgres-meta   # local Supabase (needs Docker Desktop)
+npx supabase start -x imgproxy,studio,edge-runtime,vector,logflare,mailpit,postgres-meta   # local Supabase (needs Docker Desktop)
 npm run test:db      # security/RLS integration tests (needs the local stack)
 npm run seed         # dev admin + members + applications
 npm run door -- list|approve <+e164>|resend <+e164>   # dev stand-in for the admin door list

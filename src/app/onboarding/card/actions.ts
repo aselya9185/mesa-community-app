@@ -38,10 +38,20 @@ export async function saveCardAction(_prev: CardState, formData: FormData): Prom
   const supabase = await supabaseServer();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect('/login');
+  // a new photo: only a file she just uploaded into HER folder (the database checks again)
+  const uploaded = get('photoPath');
+  const ownPhoto = new RegExp(`^${auth.user.id}/avatar-\\d+\\.jpg$`);
+  const { data: before } = await supabase.from('profiles').select('photo_path').eq('id', auth.user.id).single();
+  const oldPath = (before?.photo_path as string | null) ?? null;
+  let photo: { photo_path: string | null } | Record<string, never> = {};
+  if (uploaded && ownPhoto.test(uploaded)) photo = { photo_path: uploaded };
+  else if (get('photoRemove') === '1') photo = { photo_path: null };
+
   // row level security: she can only ever update her own card, and only these columns
   const { error } = await supabase
     .from('profiles')
     .update({
+      ...photo,
       name: parsed.data.name,
       area: parsed.data.area || null,
       instagram: parsed.data.instagram ? displayHandle(parsed.data.instagram) : null,
@@ -51,5 +61,7 @@ export async function saveCardAction(_prev: CardState, formData: FormData): Prom
     })
     .eq('id', auth.user.id);
   if (error) return { errors: { name: 'could not save your card. try again.' } };
+  // tidy up the photo she replaced or removed
+  if (oldPath && 'photo_path' in photo && photo.photo_path !== oldPath) await supabase.storage.from('avatars').remove([oldPath]);
   redirect(safeNext(get('next')));
 }

@@ -6,6 +6,7 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
 import { Avatar } from './Avatar';
 import styles from './chat.module.css';
 
+export type Person = { name: string; photo: string | null };
 export type ChatMessage = { id: string; sender_id: string | null; kind: 'user' | 'system'; event: string | null; body: string; created_at: string };
 
 const COLUMNS = 'id, sender_id, kind, event, body, created_at';
@@ -14,7 +15,7 @@ export function ChatPanel({
   planId,
   meId,
   initial,
-  names: initialNames,
+  people: initialPeople,
   goingCount,
   status,
   canPost,
@@ -24,7 +25,7 @@ export function ChatPanel({
   planId: string;
   meId: string;
   initial: ChatMessage[];
-  names: Record<string, string>;
+  people: Record<string, Person>;
   goingCount: number;
   status: string | null;
   canPost: boolean;
@@ -32,7 +33,7 @@ export function ChatPanel({
   children?: React.ReactNode;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>(initial);
-  const [names, setNames] = useState<Record<string, string>>(initialNames);
+  const [people, setPeople] = useState<Record<string, Person>>(initialPeople);
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -49,13 +50,21 @@ export function ChatPanel({
     });
   }, []);
 
-  // names of people who wrote before we looked (they may have left since)
-  const learnNames = useCallback(async (ids: string[]) => {
-    const missing = ids.filter((id) => id && !names[id]);
+  // people who wrote before we looked (they may have left since): fetch their name and photo
+  const learnPeople = useCallback(async (ids: string[]) => {
+    const missing = ids.filter((id) => id && !people[id]);
     if (missing.length === 0) return;
-    const { data } = await supabaseBrowser().from('profiles').select('id, name').in('id', missing);
-    if (data?.length) setNames((n) => ({ ...n, ...Object.fromEntries(data.map((p: { id: string; name: string }) => [p.id, p.name])) }));
-  }, [names]);
+    const sb = supabaseBrowser();
+    const { data } = await sb.from('profiles').select('id, name, photo_path').in('id', missing);
+    if (!data?.length) return;
+    const paths = data.map((p: { photo_path: string | null }) => p.photo_path).filter((x: string | null): x is string => !!x);
+    const signed = paths.length ? (await sb.storage.from('avatars').createSignedUrls(paths, 3600)).data ?? [] : [];
+    const urlFor = new Map<string, string>(signed.map((r: { path: string | null; signedUrl: string }) => [r.path ?? '', r.signedUrl]));
+    setPeople((prev) => ({
+      ...prev,
+      ...Object.fromEntries(data.map((p: { id: string; name: string; photo_path: string | null }) => [p.id, { name: p.name, photo: p.photo_path ? (urlFor.get(p.photo_path) ?? null) : null }])),
+    }));
+  }, [people]);
 
   const markRead = useCallback(() => {
     if (document.visibilityState === 'visible') void supabaseBrowser().rpc('mark_read', { p_plan: planId });
@@ -70,7 +79,7 @@ export function ChatPanel({
       const { data } = await sb.from('plan_messages').select(COLUMNS).eq('plan_id', planId).order('created_at', { ascending: false }).limit(100);
       if (data) {
         add(data as ChatMessage[]);
-        void learnNames((data as ChatMessage[]).map((m) => m.sender_id ?? '').filter(Boolean));
+        void learnPeople((data as ChatMessage[]).map((m) => m.sender_id ?? '').filter(Boolean));
       }
     };
     (async () => {
@@ -83,7 +92,7 @@ export function ChatPanel({
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'plan_messages', filter: `plan_id=eq.${planId}` }, (payload: { new: unknown }) => {
           const m = payload.new as ChatMessage;
           add([m]);
-          if (m.sender_id) void learnNames([m.sender_id]);
+          if (m.sender_id) void learnPeople([m.sender_id]);
           markRead();
         })
         .subscribe((s: string) => {
@@ -111,7 +120,7 @@ export function ChatPanel({
       if (!data) return;
       const list = data as ChatMessage[];
       add(list);
-      void learnNames(list.map((m) => m.sender_id ?? '').filter(Boolean));
+      void learnPeople(list.map((m) => m.sender_id ?? '').filter(Boolean));
       if (list.some((m) => m.sender_id !== meId)) markRead();
     }, 8000);
     return () => clearInterval(id);
@@ -175,14 +184,15 @@ export function ChatPanel({
             );
           }
           const mine = m.sender_id === meId;
-          const name = (m.sender_id && names[m.sender_id]) || 'a member';
+          const person = m.sender_id ? people[m.sender_id] : undefined;
+          const name = person?.name ?? 'a member';
           return mine ? (
             <div key={m.id} className={styles.mine}>
               {m.body}
             </div>
           ) : (
             <div key={m.id} className={styles.other}>
-              <Avatar id={m.sender_id ?? 'x'} name={name} size={36} />
+              <Avatar id={m.sender_id ?? 'x'} name={name} size={36} src={person?.photo} />
               <div className={styles.otherBody}>
                 {m.sender_id ? (
                   <Link href={`/members/${m.sender_id}?plan=${planId}`} className={styles.who}>

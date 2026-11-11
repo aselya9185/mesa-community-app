@@ -1,7 +1,8 @@
 import { supabaseServer } from './supabase/server';
+import { signAvatars } from './photos';
 import { feedWindow } from './time';
 
-export type Going = { id: string; name: string };
+export type Going = { id: string; name: string; photo?: string | null; photoPath?: string | null };
 export type PlanRow = {
   id: string;
   title: string;
@@ -15,18 +16,18 @@ export type PlanRow = {
   going: Going[];
 };
 
-const SELECT = 'id, title, starts_at, place_name, maps_url, booking_url, free_plus_one, status, host_id, plan_members(user_id, joined_at, profiles(id, name))';
+const SELECT = 'id, title, starts_at, place_name, maps_url, booking_url, free_plus_one, status, host_id, plan_members(user_id, joined_at, profiles(id, name, photo_path))';
 
-type Raw = Omit<PlanRow, 'going'> & { plan_members: { user_id: string; joined_at: string; profiles: { id: string; name: string } | { id: string; name: string }[] | null }[] };
+type Raw = Omit<PlanRow, 'going'> & { plan_members: { user_id: string; joined_at: string; profiles: { id: string; name: string; photo_path: string | null } | { id: string; name: string; photo_path: string | null }[] | null }[] };
 
 function shape(r: Raw): PlanRow {
   const { plan_members, ...rest } = r;
   const going = [...plan_members]
     .sort((a, b) => a.joined_at.localeCompare(b.joined_at))
     .map((m) => (Array.isArray(m.profiles) ? m.profiles[0] : m.profiles))
-    .filter((p): p is { id: string; name: string } => !!p)
-    .map((p) => ({ id: p.id, name: p.name }));
-  return { ...rest, going };
+    .filter((p): p is { id: string; name: string; photo_path: string | null } => !!p)
+    .map((p) => ({ id: p.id, name: p.name, photoPath: p.photo_path }));
+  return { ...rest, going } as unknown as PlanRow;
 }
 
 /** "this week": active plans starting in the next 7 days. Row level security decides what she may see. */
@@ -34,14 +35,14 @@ export async function getFeed(): Promise<PlanRow[]> {
   const supabase = await supabaseServer();
   const { from, to } = feedWindow();
   const { data } = await supabase.from('plans').select(SELECT).eq('status', 'active').gte('starts_at', from).lt('starts_at', to).order('starts_at');
-  return ((data ?? []) as unknown as Raw[]).map(shape);
+  return withPhotos(((data ?? []) as unknown as Raw[]).map(shape));
 }
 
 export async function getPlan(id: string): Promise<PlanRow | null> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
   const supabase = await supabaseServer();
   const { data } = await supabase.from('plans').select(SELECT).eq('id', id).maybeSingle();
-  return data ? shape(data as unknown as Raw) : null;
+  return data ? (await withPhotos([shape(data as unknown as Raw)]))[0]! : null;
 }
 
 /** plans she is going to or hosts, soonest first (the chats tab for now) */
@@ -51,7 +52,15 @@ export async function getMyPlans(userId: string): Promise<PlanRow[]> {
   const ids = (mine ?? []).map((m) => m.plan_id as string);
   if (ids.length === 0) return [];
   const { data } = await supabase.from('plans').select(SELECT).in('id', ids).eq('status', 'active').gte('starts_at', new Date().toISOString()).order('starts_at');
-  return ((data ?? []) as unknown as Raw[]).map(shape);
+  return withPhotos(((data ?? []) as unknown as Raw[]).map(shape));
+}
+
+async function withPhotos(plans: PlanRow[]): Promise<PlanRow[]> {
+  const urls = await signAvatars(plans.flatMap((p) => p.going.map((g) => g.photoPath)));
+  return plans.map((p) => ({
+    ...p,
+    going: p.going.map(({ photoPath, ...g }) => ({ ...g, photo: photoPath ? (urls.get(photoPath) ?? null) : null })),
+  }));
 }
 
 export function mapsLink(plan: Pick<PlanRow, 'maps_url' | 'place_name'>): string {

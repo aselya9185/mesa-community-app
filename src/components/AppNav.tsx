@@ -43,9 +43,20 @@ export function AppNav({ unreadChats = 0, isAdmin = false, doorCount = 0 }: { un
             </li>
           );
         })}
+        {isAdmin && (
+          <li className={styles.doorBarItem}>
+            <Link href="/admin/requests" className={`${styles.item} ${path.startsWith('/admin') ? styles.active : ''}`} aria-label={doorCount > 0 ? `door list, ${doorCount} waiting` : 'door list'} aria-current={path.startsWith('/admin') ? 'page' : undefined}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M6 21V4h12v17M3 21h18M14 12h.01" />
+              </svg>
+              <span>door</span>
+              {doorCount > 0 && <span className={styles.dot}>{doorCount > 9 ? '9+' : doorCount}</span>}
+            </Link>
+          </li>
+        )}
       </ul>
       {isAdmin && (
-        <Link href="/admin/requests" className={`${styles.door} ${path.startsWith('/admin') ? styles.doorOn : ''}`} aria-label={doorCount > 0 ? `door list, ${doorCount} waiting` : 'door list'}>
+        <Link href="/admin/requests" className={`${styles.door} ${path.startsWith('/admin') ? styles.doorOn : ''}`} tabIndex={0} aria-label={doorCount > 0 ? `door list, ${doorCount} waiting` : 'door list'}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M6 21V4h12v17M3 21h18M14 12h.01" />
           </svg>

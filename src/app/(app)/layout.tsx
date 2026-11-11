@@ -17,9 +17,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <NotificationsProvider userId={me.id} initialUnread={unreadNotes ?? 0}>
       <ServiceWorker />
+      <a href="#content" className={styles.skip}>
+        skip to content
+      </a>
       <div className={styles.shell}>
         <AppNav unreadChats={unread} isAdmin={me.role === 'admin'} doorCount={door} />
-        <div className={styles.content}>{children}</div>
+        <div id="content" tabIndex={-1} className={styles.content}>
+          {children}
+        </div>
       </div>
     </NotificationsProvider>
   );

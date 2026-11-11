@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { logoutAction } from '@/app/login/actions';
+import { InstallHint } from '@/components/InstallHint';
 import { MemberCard } from '@/components/MemberCard';
 import { NotificationBell } from '@/components/NotificationBell';
 import { ShareButton } from '@/components/ShareButton';
 import { requireMember } from '@/lib/auth';
+import { signAvatar } from '@/lib/photos';
 import { supabaseServer } from '@/lib/supabase/server';
 import { unblockAction } from '../members/actions';
 import styles from './card.module.css';
@@ -24,7 +26,7 @@ export default async function CardPage() {
         <h1 className={styles.heading}>your card</h1>
         <NotificationBell className={styles.bellMobile} />
       </div>
-      <MemberCard m={me} />
+      <MemberCard m={{ ...me, photo: await signAvatar(me.photo_path) }} />
       <div className={styles.buttons}>
         <Link href="/card/edit" className={styles.ghost}>
           edit card
@@ -49,6 +51,7 @@ export default async function CardPage() {
           ))}
         </section>
       )}
+      <InstallHint />
       <form action={logoutAction}>
         <button type="submit" className={styles.logout}>
           log out

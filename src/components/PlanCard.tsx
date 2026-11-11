@@ -26,7 +26,7 @@ export function PlanCard({ plan, me, selected }: { plan: PlanRow; me: string; se
         <span className={styles.cardFoot}>
           <span className={styles.avatars}>
             {shown.map((g) => (
-              <Avatar key={g.id} id={g.id} name={g.name} size={32} overlap />
+              <Avatar key={g.id} id={g.id} name={g.name} size={32} overlap src={g.photo} />
             ))}
           </span>
           <span className={isHost || iAmIn ? styles.footMine : styles.footMuted}>

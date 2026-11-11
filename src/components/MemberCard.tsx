@@ -10,6 +10,7 @@ export type CardMember = {
   likes: string[];
   trains_at: string[];
   member_no: number;
+  photo?: string | null;
 };
 
 /** the club card (design B12): no phone number, ever */
@@ -22,7 +23,7 @@ export function MemberCard({ m }: { m: CardMember }) {
       </div>
       <div className={styles.body}>
         <div className={styles.who}>
-          <Avatar id={m.id} name={m.name} size={80} />
+          <Avatar id={m.id} name={m.name} size={80} src={m.photo} />
           <div>
             <h2 className={styles.name}>{m.name.toLowerCase()}</h2>
             <p className={styles.handle}>

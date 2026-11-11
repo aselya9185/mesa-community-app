@@ -3,10 +3,11 @@
 import { useActionState } from 'react';
 import styles from '@/components/auth.module.css';
 import type { Me } from '@/lib/auth';
+import { PhotoField } from '@/components/PhotoField';
 import { LIKES } from '@/lib/likes';
 import { saveCardAction, type CardState } from './actions';
 
-export function CardForm({ me, next = '/plans', heading = 'make your card' }: { me: Me; next?: string; heading?: string }) {
+export function CardForm({ me, photoUrl = null, next = '/plans', heading = 'make your card' }: { me: Me; photoUrl?: string | null; next?: string; heading?: string }) {
   const [state, action, pending] = useActionState<CardState, FormData>(saveCardAction, null);
   const errors = state?.errors;
   return (
@@ -14,6 +15,8 @@ export function CardForm({ me, next = '/plans', heading = 'make your card' }: { 
       <input type="hidden" name="next" value={next} />
       <h1 className={styles.title}>{heading}</h1>
       <p className={styles.sub}>this is how members see you. your whatsapp number never shows here.</p>
+
+      <PhotoField userId={me.id} name={me.name} currentUrl={photoUrl} />
 
       <div className={styles.field}>
         <label htmlFor="name" className={styles.label}>

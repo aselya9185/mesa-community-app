@@ -1,0 +1,56 @@
+.field {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn {
+  min-height: var(--touch);
+  padding: 0 20px;
+  border-radius: 22px;
+  border: 1.5px solid var(--pink);
+  background: transparent;
+  color: var(--pink-soft);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.quiet {
+  min-height: var(--touch);
+  padding: 0 8px;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.error {
+  font-size: 13px;
+  color: var(--pink-pale);
+}

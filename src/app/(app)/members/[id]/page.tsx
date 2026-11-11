@@ -5,6 +5,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { MemberCard, type CardMember } from '@/components/MemberCard';
 import { ReportDialog } from '@/components/ReportDialog';
 import { requireMember } from '@/lib/auth';
+import { signAvatar } from '@/lib/photos';
 import { supabaseServer } from '@/lib/supabase/server';
 import { blockAction, unblockAction } from '../actions';
 import styles from './member.module.css';
@@ -19,11 +20,11 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 
   const supabase = await supabaseServer();
-  const { data } = await supabase.from('profiles').select('id, name, instagram, area, bio, likes, trains_at, member_no').eq('id', id).maybeSingle();
+  const { data } = await supabase.from('profiles').select('id, name, instagram, area, bio, likes, trains_at, member_no, photo_path').eq('id', id).maybeSingle();
   if (!data) notFound();
   const { data: block } = await supabase.from('blocks').select('blocked_id').eq('blocked_id', id).maybeSingle();
   const blocked = !!block;
-  const m = data as CardMember;
+  const m = { ...(data as CardMember & { photo_path: string | null }), photo: await signAvatar((data as { photo_path: string | null }).photo_path) } as CardMember;
   const first = m.name.split(' ')[0]!.toLowerCase();
   const planId = plan && /^[0-9a-f-]{36}$/i.test(plan) ? plan : null;
 

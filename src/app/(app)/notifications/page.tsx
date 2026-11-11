@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { InstallHint } from '@/components/InstallHint';
 import { EnablePush } from '@/components/EnablePush';
 import { NotificationList } from '@/components/NotificationList';
 import { requireMember } from '@/lib/auth';
@@ -16,6 +17,7 @@ export default async function NotificationsPage() {
     <main className={styles.page}>
       <h1 className={styles.heading}>notifications</h1>
       <EnablePush publicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''} />
+      <InstallHint />
       <NotificationList initial={(data ?? []) as NotificationRow[]} />
     </main>
   );

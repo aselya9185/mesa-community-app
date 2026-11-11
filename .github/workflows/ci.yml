@@ -31,6 +31,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # only the services the tests need keep CI fast (realtime is needed by the chat test; storage joins with avatars)
-      - run: npx supabase start -x storage-api,imgproxy,studio,edge-runtime,vector,logflare,mailpit,postgres-meta
+      # only the services the tests need keep CI fast (realtime for the chat test, storage for the avatar tests)
+      - run: npx supabase start -x imgproxy,studio,edge-runtime,vector,logflare,mailpit,postgres-meta
       - run: npm run test:db

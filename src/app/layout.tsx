@@ -20,6 +20,8 @@ export const metadata: Metadata = {
   title: 'mesa',
   description: 'a closed girls club in barcelona.',
   robots: { index: false, follow: false, nocache: true },
+  appleWebApp: { capable: true, title: 'mesa', statusBarStyle: 'black-translucent' },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {

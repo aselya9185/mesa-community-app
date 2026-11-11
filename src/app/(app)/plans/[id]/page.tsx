@@ -8,6 +8,7 @@ import { requireMember } from '@/lib/auth';
 import { BookingSection, GiveButton } from '@/components/BookingSection';
 import { PollSection } from '@/components/PollSection';
 import { ChatPanel, LockedChat, type ChatMessage } from '@/components/ChatPanel';
+import { signAvatars } from '@/lib/photos';
 import { getExtras, getPlan, mapsLink } from '@/lib/plans';
 import { supabaseServer } from '@/lib/supabase/server';
 import { dayParts } from '@/lib/time';
@@ -36,15 +37,16 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
 
   // chat: only for people who are going (the database enforces it; this just avoids asking for nothing)
   let initial: ChatMessage[] = [];
-  const names: Record<string, string> = Object.fromEntries(plan.going.map((g) => [g.id, g.name]));
+  const people: Record<string, { name: string; photo: string | null }> = Object.fromEntries(plan.going.map((g) => [g.id, { name: g.name, photo: g.photo ?? null }]));
   if (iAmIn) {
     const supabase = await supabaseServer();
     const { data } = await supabase.from('plan_messages').select('id, sender_id, kind, event, body, created_at').eq('plan_id', plan.id).order('created_at', { ascending: false }).limit(100);
     initial = ((data ?? []) as ChatMessage[]).reverse();
-    const unknown = [...new Set(initial.map((m) => m.sender_id).filter((x): x is string => !!x && !names[x]))];
+    const unknown = [...new Set(initial.map((m) => m.sender_id).filter((x): x is string => !!x && !people[x]))];
     if (unknown.length) {
-      const { data: profs } = await supabase.from('profiles').select('id, name').in('id', unknown);
-      for (const p of profs ?? []) names[p.id as string] = p.name as string;
+      const { data: profs } = await supabase.from('profiles').select('id, name, photo_path').in('id', unknown);
+      const urls = await signAvatars((profs ?? []).map((p) => p.photo_path as string | null));
+      for (const p of profs ?? []) people[p.id as string] = { name: p.name as string, photo: p.photo_path ? (urls.get(p.photo_path as string) ?? null) : null };
     }
   }
   const chatStatus = !plan.booking_url
@@ -83,7 +85,7 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
         <h1 className={styles.title}>{plan.title}</h1>
         {host && (
           <p className={styles.hostLine}>
-            <Avatar id={host.id} name={host.name} size={28} />
+            <Avatar id={host.id} name={host.name} size={28} src={host.photo} />
             {isHost ? 'hosted by you' : `hosted by ${host.name.split(' ')[0]!.toLowerCase()}`}
           </p>
         )}
@@ -139,7 +141,7 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
         <ul className={styles.people}>
           {plan.going.map((g) => (
             <li key={g.id} className={styles.person}>
-              <Avatar id={g.id} name={g.name} size={34} />
+              <Avatar id={g.id} name={g.name} size={34} src={g.photo} />
               {g.id === me.id ? (
                 <span className={styles.name}>{`you · ${g.name.toLowerCase()}`}</span>
               ) : (
@@ -243,7 +245,7 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
             planId={plan.id}
             meId={me.id}
             initial={initial}
-            names={names}
+            people={people}
             goingCount={plan.going.length}
             status={chatStatus}
             canPost={!cancelled}

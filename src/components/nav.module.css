@@ -130,21 +130,13 @@
   }
 }
 
-/* admin only: the door list. On phones it sits as a small pill above the bar. */
+/* admin only: the door list. On phones it is a fifth item in the bar; on tablet and desktop it sits at the bottom of the rail. */
 .door {
-  position: absolute;
-  top: -52px;
-  right: 8px;
-  height: 44px;
-  padding: 0 14px;
-  border-radius: 22px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--pink-pale);
-  color: var(--black);
-  font-size: 14px;
-  font-weight: 700;
+  display: none;
+}
+
+.doorBarItem {
+  display: list-item;
 }
 
 .door .dot {
@@ -157,10 +149,17 @@
 }
 
 @media (min-width: 768px) {
+  .doorBarItem {
+    display: none;
+  }
   .door {
     position: relative;
-    top: auto;
-    right: auto;
+    display: inline-flex;
+    align-items: center;
+    background: var(--pink-pale);
+    color: var(--black);
+    font-size: 12px;
+    font-weight: 700;
     width: 58px;
     height: 54px;
     padding: 0;

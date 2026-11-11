@@ -19,3 +19,26 @@
     padding-left: 120px;
   }
 }
+
+.skip {
+  position: fixed;
+  left: 12px;
+  top: -64px;
+  z-index: 50;
+  min-height: var(--touch);
+  padding: 0 20px;
+  border-radius: 22px;
+  background: var(--pink);
+  color: var(--black);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+}
+
+.skip:focus {
+  top: 12px;
+}
+
+.content:focus {
+  outline: none;
+}
