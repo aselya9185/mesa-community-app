@@ -1,5 +1,6 @@
 // Dev stand-in for the admin door list (the real screen comes last).
 //   npm run door -- list
+//   npm run door -- reports                    (open reports from members)
 //   npm run door -- approve +34600111222      (approve a pending request, print the invite link)
 //   npm run door -- resend  +34600111222      (fresh link for an approved request, or a reset link for a member)
 // Uses the service role: local dev only.
@@ -30,6 +31,9 @@ if (cmd === 'list') {
   const { data: reqs } = await svc.from('link_requests').select('application_id, profile_id, created_at').is('handled_at', null);
   console.log(`open link requests: ${reqs?.length ?? 0}`);
   if (reqs?.length) console.table(reqs);
+} else if (cmd === 'reports') {
+  const { data } = await svc.from('reports').select('created_at, reason, note, status, reporter:reporter_id(name), reported:reported_id(name)').eq('status', 'open').order('created_at', { ascending: false });
+  console.table((data ?? []).map((r) => ({ when: r.created_at, reporter: r.reporter?.name, reported: r.reported?.name, reason: r.reason, note: r.note })));
 } else if (cmd === 'approve' && phone) {
   const { data: app } = await svc.from('applications').select('id, name').eq('whatsapp_e164', phone).eq('status', 'pending').maybeSingle();
   if (!app) throw new Error('no pending request for that number');
@@ -47,6 +51,6 @@ if (cmd === 'list') {
     console.log(`new invite link (7 days): ${await makeInvite({ applicationId: app.id, purpose: 'invite' })}`);
   }
 } else {
-  console.log('usage: npm run door -- list | approve <+e164> | resend <+e164>');
+  console.log('usage: npm run door -- list | reports | approve <+e164> | resend <+e164>');
 }
 void loginEmail;

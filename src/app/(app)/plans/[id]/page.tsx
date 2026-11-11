@@ -140,9 +140,13 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
           {plan.going.map((g) => (
             <li key={g.id} className={styles.person}>
               <Avatar id={g.id} name={g.name} size={34} />
-              <span className={styles.name}>
-                {g.id === me.id ? `you · ${g.name.toLowerCase()}` : g.id === plan.host_id ? `${g.name.toLowerCase()} · host` : g.name.toLowerCase()}
-              </span>
+              {g.id === me.id ? (
+                <span className={styles.name}>{`you · ${g.name.toLowerCase()}`}</span>
+              ) : (
+                <Link href={`/members/${g.id}?plan=${plan.id}`} className={styles.name}>
+                  {g.id === plan.host_id ? `${g.name.toLowerCase()} · host` : g.name.toLowerCase()}
+                </Link>
+              )}
               {plan.booking_url && iAmIn && !cancelled && !isHost && extras.badges[g.id] === 'booked' && <span className={styles.badge}>✓ booked</span>}
               {isHost && plan.booking_url && !cancelled && (
                 <span className={styles.state}>

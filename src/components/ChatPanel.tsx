@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { Avatar } from './Avatar';
@@ -183,7 +184,13 @@ export function ChatPanel({
             <div key={m.id} className={styles.other}>
               <Avatar id={m.sender_id ?? 'x'} name={name} size={36} />
               <div className={styles.otherBody}>
-                <span className={styles.who}>{name.split(' ')[0]}</span>
+                {m.sender_id ? (
+                  <Link href={`/members/${m.sender_id}?plan=${planId}`} className={styles.who}>
+                    {name.split(' ')[0]}
+                  </Link>
+                ) : (
+                  <span className={styles.who}>{name.split(' ')[0]}</span>
+                )}
                 <div className={styles.bubble}>{m.body}</div>
               </div>
             </div>
