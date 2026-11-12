@@ -2,7 +2,7 @@
 // Creates an admin, a few members and a few applications. Passwords are dev-only.
 import { service, upsertMember } from './lib.mjs';
 
-const svc = service();
+const svc = service({ localOnly: true });
 const password = 'mesa-dev-password';
 
 const people = [

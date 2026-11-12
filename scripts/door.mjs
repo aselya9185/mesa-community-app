@@ -7,7 +7,7 @@
 import { service, loginEmail } from './lib.mjs';
 import { generateToken, hashToken } from '../src/server/tokens.ts';
 
-const svc = service();
+const svc = service({ localOnly: true });
 const site = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 const [cmd, phone] = process.argv.slice(2);
 

@@ -3,7 +3,13 @@ import { createClient } from '@supabase/supabase-js';
 
 // Dev scripts talk to Supabase with the service role. Local stack by default; for a real
 // project set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in your shell (never commit them).
-export function service() {
+const LOCAL = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\]|host\.docker\.internal)(:|\/|$)/;
+
+/**
+ * Service-role client. Pass { localOnly: true } for development-only scripts (seed, door list): they refuse to run
+ * against anything but the local stack, so sample data can never land in a real project by accident.
+ */
+export function service({ localOnly = false } = {}) {
   let url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   let key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) {
@@ -19,6 +25,9 @@ export function service() {
     key = key ?? env.SERVICE_ROLE_KEY;
   }
   if (!url || !key) throw new Error('no supabase url/key: is `npx supabase start` running?');
+  if (localOnly && !LOCAL.test(url)) {
+    throw new Error(`this script is for the local development database only, but NEXT_PUBLIC_SUPABASE_URL points at ${new URL(url).host}. unset NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in this shell and try again.`);
+  }
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
