@@ -225,8 +225,10 @@ describe('realtime delivery respects the same rules', () => {
       new Promise<void>((res, rej) => member.channel.subscribe((s) => (s === 'SUBSCRIBED' ? res() : s === 'CHANNEL_ERROR' || s === 'TIMED_OUT' ? rej(new Error(s)) : undefined))),
       new Promise<void>((res, rej) => stranger.channel.subscribe((s) => (s === 'SUBSCRIBED' ? res() : s === 'CHANNEL_ERROR' || s === 'TIMED_OUT' ? rej(new Error(s)) : undefined))),
     ]);
+    // SUBSCRIBED can arrive before the database listener is ready on a cold machine (CI): let it settle
+    await new Promise((r) => setTimeout(r, 2000));
     await say(hostC, host, p, 'see you at 7!');
-    for (let i = 0; i < 30 && member.seen.length === 0; i++) await new Promise((r) => setTimeout(r, 200));
+    for (let i = 0; i < 75 && member.seen.length === 0; i++) await new Promise((r) => setTimeout(r, 200));
     await new Promise((r) => setTimeout(r, 500));
     expect(member.seen).toContain('see you at 7!');
     expect(stranger.seen).toHaveLength(0);
