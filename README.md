@@ -91,3 +91,8 @@ The database tests cover access rules for visitors, pending applicants, removed 
 ## Privacy
 
 Members never see each other's phone numbers; only the admin can. Pages are not indexed by search engines.
+
+## Planned
+
+- Automated, encrypted database backups (see the TODO in `.github/workflows/keepalive.yml`).
+- Privacy notice and consent line on the request form.
