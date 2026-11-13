@@ -7,7 +7,7 @@ import { anonClient, cleanup, insertInvite, loginEmail, makeApplication, makeUse
 
 const svc = serviceClient();
 const ip = () => ({ ipHash: randomBytes(6).toString('hex') });
-const GOOD = 'a-long-enough-password';
+const GOOD = 'a-long-enough-password-1';
 
 afterAll(async () => {
   await cleanup();
@@ -58,6 +58,8 @@ describe('joining with an invite link', () => {
   it('a weak password does not burn the link', async () => {
     const a = await approvedApp();
     expect(await redeemInvite(svc, a.token, 'short', ip())).toEqual({ ok: false, error: 'weak_password' });
+    expect(await redeemInvite(svc, a.token, 'onlyletters', ip())).toEqual({ ok: false, error: 'weak_password' });
+    expect(await redeemInvite(svc, a.token, '12345678', ip())).toEqual({ ok: false, error: 'weak_password' });
     expect(await previewInvite(svc, a.token)).toMatchObject({ ok: true });
     const ok = await redeemInvite(svc, a.token, GOOD, ip());
     expect(ok.ok).toBe(true);

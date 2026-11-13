@@ -9,6 +9,16 @@ export type Purpose = 'invite' | 'reset';
 export const PASSWORD_MIN = 8;
 export const PASSWORD_MAX = 72; // bcrypt (what Supabase Auth uses) ignores anything beyond 72 bytes
 
+/** 8+ characters with at least one letter and one digit (the same rule is set in the Supabase auth settings) */
+export function passwordOk(password: string): boolean {
+  return (
+    password.length >= PASSWORD_MIN &&
+    new TextEncoder().encode(password).length <= PASSWORD_MAX &&
+    /\p{L}/u.test(password) &&
+    /\d/.test(password)
+  );
+}
+
 export const JOIN_LIMIT = { max: 20, windowSeconds: 3600 };
 
 export type JoinPreview = { ok: true; purpose: Purpose; firstName: string } | { ok: false };
@@ -52,7 +62,7 @@ export async function redeemInvite(
 ): Promise<RedeemResult> {
   if (!isWellFormedToken(token)) return { ok: false, error: 'invalid_link' };
   // a wrong password must not burn the link: check it before claiming
-  if (password.length < PASSWORD_MIN || new TextEncoder().encode(password).length > PASSWORD_MAX) {
+  if (!passwordOk(password)) {
     return { ok: false, error: 'weak_password' };
   }
   const { data: allowed } = await svc.rpc('rate_limit_hit', {

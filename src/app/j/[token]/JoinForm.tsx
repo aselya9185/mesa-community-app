@@ -5,7 +5,7 @@ import styles from '@/components/auth.module.css';
 import { joinAction, type JoinState } from './actions';
 
 const MESSAGES: Record<NonNullable<JoinState>['error'], string> = {
-  weak_password: 'your password needs at least 8 characters.',
+  weak_password: 'your password needs at least 8 characters, with a letter and a number.',
   invalid_link: 'this link has already been used or has expired. ask the club for a new one.',
   rate_limited: 'too many tries. wait a bit and try again.',
   failed: "something went wrong and your link is still safe. try again, or ask the club for a new one.",
@@ -42,7 +42,7 @@ export function JoinForm({ token, firstName, purpose }: { token: string; firstNa
           </button>
         </div>
         <span id="pw-hint" className={styles.hint}>
-          use one you don&apos;t use anywhere else · at least 8 characters
+          use one you don&apos;t use anywhere else · 8+ characters, a letter and a number
         </span>
       </div>
       {state && (
