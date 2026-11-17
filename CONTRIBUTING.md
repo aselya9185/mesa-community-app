@@ -33,6 +33,7 @@ Examples: `fix(plans): next button checks the step before moving on`, `feat(chat
 ```bash
 npm run check      # lint, type-check, unit tests
 npm run test:db    # needs the local Supabase (see README)
+npm run test:e2e   # browser tests; run it when you touch screens or flows
 ```
 
 ## Rules that always apply

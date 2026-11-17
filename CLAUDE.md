@@ -16,6 +16,7 @@ npm run test         # vitest run
 npm run check        # lint + typecheck + test (run before every commit)
 npx supabase start -x imgproxy,studio,edge-runtime,vector,logflare,mailpit,postgres-meta   # local Supabase (needs Docker Desktop)
 npm run test:db      # security/RLS integration tests (needs the local stack)
+npm run test:e2e     # Playwright browser tests on desktop and phone (needs the local stack; builds and starts the app itself)
 npm run seed         # dev admin + members + applications
 npm run door -- list|approve <+e164>|resend <+e164>   # dev stand-in for the admin door list
 node scripts/reset-admin-mfa.mjs             # lost phone: remove the admin's authenticator

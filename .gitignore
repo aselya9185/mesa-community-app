@@ -23,3 +23,8 @@ supabase/.temp/
 docs/PLAN.md
 docs/DEPLOY.md
 docs/RUNBOOK.md
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
