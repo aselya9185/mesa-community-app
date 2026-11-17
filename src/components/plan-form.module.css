@@ -80,6 +80,22 @@
   gap: 12px;
 }
 
+.row > * {
+  min-width: 0;
+}
+
+/* iOS gives date and time fields a minimum width of their own: make them follow the column */
+.row input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+  text-align: left;
+}
+
 .switchRow {
   display: flex;
   align-items: center;

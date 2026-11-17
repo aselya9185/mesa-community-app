@@ -340,6 +340,23 @@
   display: none;
 }
 
+/* phone, chat tab: the page is exactly one screen (the bar's room is added by the shell), so only the messages scroll */
+@media (max-width: 767px) {
+  .wrap[data-tab='chat'] {
+    height: calc(100dvh - 104px);
+    overflow: hidden;
+  }
+  .wrap[data-tab='chat'] .tabs {
+    flex: none;
+  }
+  .wrap[data-tab='chat'] .chatCol {
+    flex: 1;
+    min-height: 0;
+    height: auto;
+    margin-bottom: 8px;
+  }
+}
+
 @media (min-width: 768px) {
   .tabs {
     margin: 12px 20px 0;

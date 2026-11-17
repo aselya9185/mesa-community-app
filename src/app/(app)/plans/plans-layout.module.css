@@ -1,5 +1,6 @@
 .split {
-  min-height: 100dvh;
+  /* phones: the shell adds 104px under the content for the floating bar, so together they are exactly one screen */
+  min-height: calc(100dvh - 104px);
 }
 
 .pane {
