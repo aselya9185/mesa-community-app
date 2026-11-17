@@ -117,7 +117,7 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
         </div>
       </div>
 
-      {plan.free_plus_one && (
+      {plan.free_plus_one && !cancelled && (
         <div className={styles.card}>
           <div className={styles.cardText}>
             <strong>bring a +1 available</strong>
@@ -134,8 +134,8 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
         </h2>
         {isHost && others.length === 0 && !cancelled ? (
           <div className={styles.empty}>
-            <strong>no one yet</strong>
-            <span>nobody has joined this plan. share it in the group chat to get the first yes.</span>
+            <strong>just you so far</strong>
+            <span>share this plan in the group chat to get the first yes.</span>
           </div>
         ) : null}
         <ul className={styles.people}>
