@@ -1,0 +1,45 @@
+name: Bug report
+description: Something in the app does not work as expected
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Log in as a member
+        2. Open "drop a plan"
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options:
+        - Phone (installed app)
+        - Phone (browser)
+        - Tablet
+        - Desktop
+        - Admin door list
+        - Database / security rules
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and browser
+      placeholder: iPhone 15, iOS 18, Safari
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or logs
+      description: Never paste phone numbers, tokens or passwords.

@@ -26,7 +26,7 @@ node scripts/set-push-config.mjs <url>        # where the database sends push ha
 
 ## Hard rules
 
-- **Zero running cost for v1.** No paid APIs, SMS or plans. Ask before adding any paid service or any dependency not already approved: `@supabase/supabase-js`, `@supabase/ssr`, `web-push`, `zod`, `libphonenumber-js`, `vitest` (+ the Supabase CLI as a dev dependency). No Playwright, Tailwind, PWA plugin or Turnstile.
+- **Zero running cost for v1.** No paid APIs, SMS or plans. Ask before adding any paid service or any dependency not already approved: `@supabase/supabase-js`, `@supabase/ssr`, `web-push`, `zod`, `libphonenumber-js`, `vitest` (+ the Supabase CLI as a dev dependency). Playwright is approved as a dev dependency for end-to-end tests only. No Tailwind, PWA plugin or Turnstile.
 - **Notifications:** web push + in-app only. No WhatsApp/Instagram API.
 - **Privacy first.** RLS on every table. A logged-out, pending or removed user reads nothing. Members never see each other's WhatsApp numbers (only the admin does). `noindex` + `robots.txt` disallow-all. No secrets in the repo (`.env.example` only). The service-role key is server-only and used only for: the apply form (+ its rate limits), token redeem + account creation, the login rate limiter, admin auth actions (banning a removed member), web push. A test fails if client code imports it.
 - **Auth:** Supabase Auth only (no hand-rolled hashing). Login = WhatsApp number + password. Users are created only via the admin API; public sign-up is disabled. Admin uses MFA (TOTP); `is_admin()` requires AAL2.
@@ -42,3 +42,12 @@ node scripts/set-push-config.mjs <url>        # where the database sends push ha
 - `invites` has a column-level grant (no `token_hash`): `select('*')` on it errors for every client, so always list columns.
 - Never import the service client from client code. Never log tokens, numbers or passwords.
 - Copy follows the lowercase house style; see the appendix in `docs/PLAN.md` for undesigned states.
+
+## Workflow (see CONTRIBUTING.md)
+
+- One branch per issue, a pull request, green CI, squash merge. Never push to `main` once branch protection is on.
+- Commit and PR titles: `type(scope): summary` (feat, fix, perf, refactor, test, docs, ci, chore, security), lowercase.
+- Update `CHANGELOG.md` under "Unreleased" for anything users would notice.
+- Fixing review comments: reproduce with a failing test when it is a bug, fix on the same branch, push a new commit, and say which comment it answers. Do not force-push over reviewed commits.
+- Never edit a migration that has been applied; add a new one. Never touch secrets, `.env*` or the production database from a review fix.
+- AI review and fix automation costs money to run: do not enable or change those workflows without the owner's go-ahead.
