@@ -4,7 +4,11 @@ All notable changes. Format based on [Keep a Changelog](https://keepachangelog.c
 
 ## [Unreleased]
 
+### Changed
+- "Plans after" is always there for people who are going, even when the host picked no options: anyone can add the first idea, and others vote.
+
 ### Fixed
+- The plan page updates by itself when someone joins, leaves, gets the +1 or the plan changes, without reloading.
 - Hosts see what is missing before the free +1 can be given: a booking link, and someone who has joined.
 
 ### Added

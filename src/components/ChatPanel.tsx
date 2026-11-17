@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { Avatar } from './Avatar';
@@ -40,6 +41,30 @@ export function ChatPanel({
   const [live, setLive] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
+  const router = useRouter();
+  const knownIds = useRef(new Set(initial.map((m) => m.id)));
+  const lastRefresh = useRef(0);
+
+  // joins, leaves, edits, the +1 and cancellations all arrive as system messages: when one does, the plan page beside
+  // the chat (who is going, the +1 card, the cancelled banner) is out of date, so refresh it in place
+  const pendingRefresh = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refreshPlan = useCallback(() => {
+    // at most one refresh every 2 seconds, but never drop one: a change that arrives too soon waits its turn
+    const wait = 2000 - (Date.now() - lastRefresh.current);
+    if (wait > 0) {
+      if (!pendingRefresh.current) {
+        pendingRefresh.current = setTimeout(() => {
+          pendingRefresh.current = null;
+          lastRefresh.current = Date.now();
+          router.refresh();
+        }, wait);
+      }
+      return;
+    }
+    lastRefresh.current = Date.now();
+    router.refresh();
+  }, [router]);
+  useEffect(() => () => { if (pendingRefresh.current) clearTimeout(pendingRefresh.current); }, []);
 
   const add = useCallback((incoming: ChatMessage[]) => {
     setMessages((prev) => {
@@ -92,6 +117,7 @@ export function ChatPanel({
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'plan_messages', filter: `plan_id=eq.${planId}` }, (payload: { new: unknown }) => {
           const m = payload.new as ChatMessage;
           add([m]);
+          if (m.kind === 'system') refreshPlan();
           if (m.sender_id) void learnPeople([m.sender_id]);
           markRead();
         })
@@ -110,22 +136,36 @@ export function ChatPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planId]);
 
-  // safety net: some networks block websockets, so without a live connection we look for news every 8 seconds
+  // safety net: some networks block websockets, and a live connection can still miss an event, so we also look for news
+  // now and then: every 8 seconds without a live connection, every 20 with one
   useEffect(() => {
-    if (live) return;
     const sb = supabaseBrowser();
     const id = setInterval(async () => {
       if (document.visibilityState !== 'visible') return;
       const { data } = await sb.from('plan_messages').select(COLUMNS).eq('plan_id', planId).order('created_at', { ascending: false }).limit(100);
       if (!data) return;
       const list = data as ChatMessage[];
+      if (list.some((m) => m.kind === 'system' && !knownIds.current.has(m.id))) refreshPlan();
       add(list);
       void learnPeople(list.map((m) => m.sender_id ?? '').filter(Boolean));
       if (list.some((m) => m.sender_id !== meId)) markRead();
-    }, 8000);
+    }, live ? 20000 : 8000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [live, planId]);
+
+  useEffect(() => {
+    knownIds.current = new Set(messages.map((m) => m.id));
+  }, [messages]);
+
+  // coming back to the tab (or the installed app): show who joined while she was away, including bookings
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refreshPlan();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [refreshPlan]);
 
   useEffect(() => {
     const el = listRef.current;

@@ -4,7 +4,22 @@ import { AddOption } from './AddOption';
 import styles from './poll.module.css';
 
 export function PollSection({ planId, options, iAmIn, canAdd, cancelled }: { planId: string; options: PollOption[]; iAmIn: boolean; canAdd: boolean; cancelled: boolean }) {
-  if (options.length === 0) return null;
+  if (options.length === 0) {
+    // nobody has suggested anything yet: people who are going still see the section, so the first idea can come from anyone
+    if (!canAdd || cancelled) return null;
+    return (
+      <section aria-labelledby="poll-h" className={styles.poll}>
+        <div className={styles.head}>
+          <h2 id="poll-h" className={styles.title}>
+            plans after
+          </h2>
+          <span className={styles.hint}>no ideas yet</span>
+        </div>
+        <p className={styles.hint}>fancy something after? add an idea and the others can vote.</p>
+        <AddOption planId={planId} />
+      </section>
+    );
+  }
   const total = options.reduce((n, o) => n + o.votes, 0);
   return (
     <section aria-labelledby="poll-h" className={styles.poll}>
