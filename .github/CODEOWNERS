@@ -1,0 +1,6 @@
+# Everything needs the owner's review. Database and security code are listed so it stays explicit.
+*                          @aselya9185
+/supabase/migrations/      @aselya9185
+/tests/db/                 @aselya9185
+/src/proxy.ts              @aselya9185
+/.github/                  @aselya9185

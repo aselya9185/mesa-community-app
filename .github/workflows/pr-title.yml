@@ -1,0 +1,23 @@
+name: pr title
+
+# Squash merges use the pull request title as the commit message, so it has to follow the convention.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the title
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|perf|refactor|test|docs|ci|chore|security)(\([a-z0-9-]+\))?!?: [a-z0-9].{2,}$'
+          if [[ ! "$TITLE" =~ $pattern ]]; then
+            echo "::error::PR title must look like 'type(scope): summary', for example 'fix(plans): next checks the step'. See CONTRIBUTING.md."
+            exit 1
+          fi
