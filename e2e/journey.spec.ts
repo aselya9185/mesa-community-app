@@ -65,3 +65,34 @@ test('someone who is not in a plan cannot read its chat', async ({ page, browser
   await expect(other.getByRole('button', { name: 'count me in' })).toBeVisible();
   await ctx.close();
 });
+
+test('plans after starts empty: nothing is filled in, but anyone going can add the first idea and others vote', async ({ page, browser, baseURL }, info) => {
+  const host = await makeUser({ name: 'emptyhost' });
+  const guest = await makeUser({ name: 'emptyguest' });
+  const title = `Pilates ${Date.now()}`;
+
+  await login(page, host);
+  await dropPlan(page, { title, place: 'Studio' }); // no suggestions picked
+  const planPath = new URL(page.url()).pathname;
+  await expect(page.getByRole('heading', { name: 'plans after' })).toBeVisible();
+  await expect(page.getByText('no ideas yet')).toBeVisible();
+  await expect(page.getByRole('button', { name: /matcha|coffee|brunch/ })).toHaveCount(0);
+
+  const device = info.project.name === 'phone' ? devices['Pixel 7'] : devices['Desktop Chrome'];
+  const ctx = await browser.newContext({ ...device, baseURL });
+  const her = await ctx.newPage();
+  await login(her, guest);
+  await her.goto(planPath);
+  // she has not joined: she cannot add or see a poll yet
+  await expect(her.getByRole('heading', { name: 'plans after' })).toHaveCount(0);
+  await her.getByRole('button', { name: 'count me in' }).click();
+  await her.getByLabel('add your own').fill('sunset walk');
+  await her.getByRole('button', { name: 'add', exact: true }).click();
+  await expect(her.getByRole('button', { name: /sunset walk/ })).toBeVisible();
+
+  // the host sees the idea and can vote for it
+  await page.goto(planPath);
+  await page.getByRole('button', { name: /sunset walk/ }).click();
+  await expect(page.getByRole('button', { name: /sunset walk/ })).toHaveAttribute('aria-pressed', 'true');
+  await ctx.close();
+});

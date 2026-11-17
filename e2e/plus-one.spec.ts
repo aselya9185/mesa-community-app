@@ -26,8 +26,8 @@ test('the host gives the free +1 to a joined member who has not booked', async (
   await her.getByRole('button', { name: 'count me in' }).click();
   await expect(her.getByText('+1 pending')).toBeVisible();
 
-  // the host can now give it to her
-  await page.goto(planPath);
+  // the host's open page updates by itself (no reload) and she can now give it to her
+  await expect(page.getByRole('button', { name: 'give the +1 to plusguest' })).toBeVisible({ timeout: 40_000 });
   await page.getByRole('button', { name: 'give the +1 to plusguest' }).click();
   await expect(page.getByText('free +1 · given')).toBeVisible();
 
