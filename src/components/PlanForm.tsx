@@ -83,7 +83,7 @@ export function PlanForm({
   const [title, setTitle] = useState(defaults.title);
   const [place, setPlace] = useState(defaults.place);
   const [booking, setBooking] = useState(defaults.booking);
-  const pollChecked = state ? (state.values.poll ?? '').split('|').map((l) => l.toLowerCase()) : POLL_DEFAULTS;
+  const pollChecked = state ? (state.values.poll ?? '').split('|').map((l) => l.toLowerCase()) : [];
   const hostBooked = state ? state.values.booked === 'yes' : false;
 
   const shown = step;
@@ -184,7 +184,9 @@ export function PlanForm({
         )}
         {mode === 'create' && (
           <fieldset className={styles.radios} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-            <legend className={authStyles.label}>plans after?</legend>
+            <legend className={authStyles.label}>
+              plans after? <span className={authStyles.optional}>(optional: pick some to start a poll)</span>
+            </legend>
             <div className={authStyles.chips}>
               {POLL_DEFAULTS.map((l) => (
                 <label key={l} className={authStyles.chip}>
