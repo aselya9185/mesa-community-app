@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { cache } from 'react';
 import { supabaseServer } from './supabase/server';
 
 export type Me = {
@@ -15,8 +16,11 @@ export type Me = {
   role: 'member' | 'admin';
 };
 
-/** the signed-in, active member, or a redirect to /login. Removed members are signed out. */
-export async function requireMember(): Promise<Me> {
+/**
+ * the signed-in, active member, or a redirect to /login. Removed members are signed out.
+ * cache(): the layout and the page both ask, but within one request the database is only asked once.
+ */
+export const requireMember = cache(async (): Promise<Me> => {
   const supabase = await supabaseServer();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect('/login');
@@ -30,4 +34,4 @@ export async function requireMember(): Promise<Me> {
     redirect('/login');
   }
   return me as Me;
-}
+});

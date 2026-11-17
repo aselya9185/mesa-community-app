@@ -20,8 +20,8 @@ export const metadata: Metadata = { title: 'plan · mesa' };
 export default async function PlanPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string }> }) {
   const { id } = await params;
   const { tab } = await searchParams;
-  const me = await requireMember();
-  const plan = await getPlan(id);
+  // independent: ask together (the database decides what she may see; requireMember sends visitors away)
+  const [me, plan] = await Promise.all([requireMember(), getPlan(id)]);
   if (!plan) notFound();
 
   const extras = await getExtras(plan, me.id);

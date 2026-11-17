@@ -9,10 +9,13 @@ import styles from './shell.module.css';
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const me = await requireMember();
   const supabase = await supabaseServer();
-  const { data } = await supabase.rpc('my_chats');
-  const { data: counts } = me.role === 'admin' ? await supabase.rpc('admin_counts') : { data: null };
+  // independent questions: ask them together (each one is a trip to the database)
+  const [{ data }, { data: counts }, { count: unreadNotes }] = await Promise.all([
+    supabase.rpc('my_chats'),
+    me.role === 'admin' ? supabase.rpc('admin_counts') : Promise.resolve({ data: null }),
+    supabase.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null),
+  ]);
   const door = counts ? Number((counts as { requests: number }).requests) + Number((counts as { link_requests: number }).link_requests) + Number((counts as { reports: number }).reports) : 0;
-  const { count: unreadNotes } = await supabase.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null);
   const unread = ((data ?? []) as { unread: number | string }[]).reduce((n, c) => n + Number(c.unread), 0);
   return (
     <NotificationsProvider userId={me.id} initialUnread={unreadNotes ?? 0}>
