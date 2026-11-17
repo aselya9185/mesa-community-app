@@ -122,6 +122,15 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
           <div className={styles.cardText}>
             <strong>bring a +1 available</strong>
             <span className={styles.muted}>{isHost ? 'you have a free pass for one person and you pick who gets it. anyone else can join too.' : 'the host has a free pass for one person and picks who gets it. anyone else can join too.'}</span>
+            {isHost && !plan.booking_url && (
+              <span className={styles.muted}>
+                to give it, the plan needs a booking link.{' '}
+                <Link href={`/plans/${plan.id}/edit`} className={styles.inlineLink}>
+                  add one
+                </Link>
+              </span>
+            )}
+            {isHost && plan.booking_url && others.length === 0 && <span className={styles.muted}>waiting for someone to join. you can give it to a girl who has not booked.</span>}
           </div>
         </div>
       )}
