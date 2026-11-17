@@ -225,12 +225,15 @@ describe('realtime delivery respects the same rules', () => {
       new Promise<void>((res, rej) => member.channel.subscribe((s) => (s === 'SUBSCRIBED' ? res() : s === 'CHANNEL_ERROR' || s === 'TIMED_OUT' ? rej(new Error(s)) : undefined))),
       new Promise<void>((res, rej) => stranger.channel.subscribe((s) => (s === 'SUBSCRIBED' ? res() : s === 'CHANNEL_ERROR' || s === 'TIMED_OUT' ? rej(new Error(s)) : undefined))),
     ]);
-    // SUBSCRIBED can arrive before the database listener is ready on a cold machine (CI): let it settle
-    await new Promise((r) => setTimeout(r, 2000));
-    await say(hostC, host, p, 'see you at 7!');
-    for (let i = 0; i < 75 && member.seen.length === 0; i++) await new Promise((r) => setTimeout(r, 200));
-    await new Promise((r) => setTimeout(r, 500));
-    expect(member.seen).toContain('see you at 7!');
+    // SUBSCRIBED can arrive before the database listener is ready on a cold machine (CI), so a single message can be
+    // missed. Keep sending probes until she receives one; the outsider must receive none of them.
+    let sent = 0;
+    for (let attempt = 0; attempt < 8 && member.seen.length === 0; attempt++) {
+      await say(hostC, host, p, `see you at 7! (${++sent})`);
+      for (let i = 0; i < 25 && member.seen.length === 0; i++) await new Promise((r) => setTimeout(r, 200));
+    }
+    await new Promise((r) => setTimeout(r, 1000)); // give a wrongly-delivered copy time to show up
+    expect(member.seen.some((body) => body.startsWith('see you at 7!'))).toBe(true);
     expect(stranger.seen).toHaveLength(0);
     await annaC.removeChannel(member.channel);
     await outsiderC.removeChannel(stranger.channel);
