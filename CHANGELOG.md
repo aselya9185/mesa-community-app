@@ -4,6 +4,9 @@ All notable changes. Format based on [Keep a Changelog](https://keepachangelog.c
 
 ## [Unreleased]
 
+### Added
+- CI: production build, dependency audit, migration history check, secrets guard test, weekly dependency updates, code scanning (runs once the repository is public).
+
 ## [0.1.0] - 2026-11-17
 
 First live version.

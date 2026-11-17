@@ -8,6 +8,11 @@ on:
 permissions:
   contents: read
 
+# a newer push to the same branch makes the older run pointless
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -34,3 +39,49 @@ jobs:
       # only the services the tests need keep CI fast (realtime for the chat test, storage for the avatar tests)
       - run: npx supabase start -x imgproxy,studio,edge-runtime,vector,logflare,mailpit,postgres-meta
       - run: npm run test:db
+
+  # the production build, with placeholder values: it must compile without any real secret
+  build:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SITE_URL: https://example.test
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: build-placeholder
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: build-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+  # known vulnerabilities in the dependencies that ship to users
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm audit --omit=dev --audit-level=high
+
+  # applied migrations are history: pull requests may add files but never edit, rename or delete one
+  migrations:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Only new migration files
+        run: |
+          changed=$(git diff --name-status "origin/${{ github.base_ref }}...HEAD" -- supabase/migrations | grep -v '^A' || true)
+          if [ -n "$changed" ]; then
+            echo "::error::Existing migrations must not be edited, renamed or deleted. Add a new migration instead."
+            echo "$changed"
+            exit 1
+          fi
