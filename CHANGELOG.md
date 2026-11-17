@@ -4,6 +4,9 @@ All notable changes. Format based on [Keep a Changelog](https://keepachangelog.c
 
 ## [Unreleased]
 
+### Fixed
+- Hosts see what is missing before the free +1 can be given: a booking link, and someone who has joined.
+
 ### Added
 - End-to-end browser tests (Playwright) on desktop and phone sizes: visitors, the invite journey with two-step sign-in, and a plan with join, live chat, poll and cancel.
 - CI: production build, dependency audit, migration history check, secrets guard test, weekly dependency updates, code scanning (runs once the repository is public).

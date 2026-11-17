@@ -21,7 +21,7 @@ export function tomorrow(): string {
 }
 
 /** fill the plan form on any screen size: on phones it has three steps, on larger screens one page */
-export async function dropPlan(page: Page, plan: { title: string; place: string; poll?: string[] }) {
+export async function dropPlan(page: Page, plan: { title: string; place: string; poll?: string[]; booking?: string; plusOne?: boolean }) {
   await page.goto('/plans/new');
   await page.getByLabel('what are you doing?').fill(plan.title);
   await page.getByLabel('where?').fill(plan.place);
@@ -29,7 +29,9 @@ export async function dropPlan(page: Page, plan: { title: string; place: string;
   if (await next.isVisible()) await next.click();
   await page.getByLabel('day').fill(tomorrow());
   await page.getByLabel('time').fill('19:00');
+  if (plan.booking) await page.getByLabel('booking link').fill(plan.booking);
   if (await next.isVisible()) await next.click();
+  if (plan.plusOne) await page.getByRole('switch').check();
   for (const label of plan.poll ?? []) await page.locator('label', { hasText: new RegExp(`^${label}$`) }).click();
   await page.getByRole('button', { name: 'drop it' }).click();
   await expect(page.getByRole('heading', { name: plan.title.toLowerCase() })).toBeVisible();
