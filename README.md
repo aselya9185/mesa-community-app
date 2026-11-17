@@ -60,6 +60,7 @@ Copy `.env.example` to `.env.local`. Never commit real values.
 | `npm run build` / `npm start` | production build and start |
 | `npm run check` | lint, type-check and unit tests |
 | `npm run test:db` | database and security tests (needs the local Supabase) |
+| `npm run test:e2e` | browser tests with Playwright (needs the local Supabase) |
 | `npm run seed` | sample data for development |
 | `npm run door -- list \| reports \| approve <+e164> \| resend <+e164>` | terminal version of the admin door list |
 | `node scripts/create-admin.mjs` | create an admin account |
@@ -84,6 +85,7 @@ scripts/             development and maintenance scripts
 ```bash
 npm run check      # lint, type-check, unit tests
 npm run test:db    # runs against the local Supabase
+npm run test:e2e   # real browser tests, desktop and phone sizes (first time: npx playwright install chromium)
 ```
 
 The database tests cover access rules for visitors, pending applicants, removed members, members and the admin (with and without two-step sign-in), invite links, chat, the +1, notifications, photos and the admin actions.
