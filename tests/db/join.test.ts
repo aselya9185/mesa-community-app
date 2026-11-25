@@ -35,8 +35,11 @@ describe('joining with an invite link', () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.phone).toBe(a.phone);
-    const { data: prof } = await svc.from('profiles').select('name, instagram, role, status').eq('id', r.userId).single();
-    expect(prof).toMatchObject({ name: 'Sofia Reyes', instagram: '@sofia.s', role: 'member', status: 'active' });
+    const { data: prof } = await svc.from('profiles').select('name, role, status').eq('id', r.userId).single();
+    expect(prof).toMatchObject({ name: 'Sofia Reyes', role: 'member', status: 'active' });
+    // the handle she gave when asking for an invite is kept, but private until she opts in on her card
+    const { data: ig } = await svc.from('member_instagram').select('handle, is_public').eq('user_id', r.userId).single();
+    expect(ig).toEqual({ handle: '@sofia.s', is_public: false });
     const { data: priv } = await svc.from('member_private').select('whatsapp_e164').eq('user_id', r.userId).single();
     expect(priv?.whatsapp_e164).toBe(a.phone);
     const { data: app } = await svc.from('applications').select('profile_id').eq('id', a.id).single();

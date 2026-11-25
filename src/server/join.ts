@@ -114,10 +114,13 @@ async function createMember(svc: SupabaseClient, applicationId: string | null, p
     await svc.auth.admin.deleteUser(userId); // cascades to anything inserted below
     return null;
   };
-  const p = await svc.from('profiles').insert({ id: userId, name: app.name, instagram: app.instagram });
+  const p = await svc.from('profiles').insert({ id: userId, name: app.name });
   if (p.error) return fail();
   const m = await svc.from('member_private').insert({ user_id: userId, whatsapp_e164: phone });
   if (m.error) return fail();
+  // the handle she gave when asking for an invite: private (only she and the admin) until she opts in on her card
+  const ig = await svc.from('member_instagram').insert({ user_id: userId, handle: app.instagram, is_public: false });
+  if (ig.error) return fail();
   await svc.from('applications').update({ profile_id: userId }).eq('id', app.id);
   await svc.from('link_requests').update({ handled_at: new Date().toISOString() }).eq('application_id', app.id).is('handled_at', null);
   return { userId, phone };
@@ -135,7 +138,8 @@ async function reactivate(svc: SupabaseClient, applicationId: string, phone: str
   if (!prof || prof.status !== 'removed') return null;
   const { error } = await svc.auth.admin.updateUserById(userId, { password, ban_duration: 'none' });
   if (error) return null;
-  await svc.from('profiles').update({ status: 'active', name, instagram }).eq('id', userId);
+  await svc.from('profiles').update({ status: 'active', name }).eq('id', userId);
+  await svc.from('member_instagram').upsert({ user_id: userId, handle: instagram }, { onConflict: 'user_id' });
   await svc.from('applications').update({ profile_id: userId }).eq('id', applicationId);
   await svc.from('link_requests').update({ handled_at: new Date().toISOString() }).eq('application_id', applicationId).is('handled_at', null);
   return { userId, phone };

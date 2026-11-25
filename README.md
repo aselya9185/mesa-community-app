@@ -92,7 +92,7 @@ The database tests cover access rules for visitors, pending applicants, removed 
 
 ## Privacy
 
-Members never see each other's phone numbers; only the admin can. Pages are not indexed by search engines.
+Members never see each other's phone numbers; only the admin can. Instagram handles are private too: only the member and the admin see a handle, unless the member turns on "show my instagram on my card". Pages are not indexed by search engines.
 
 ## Planned
 

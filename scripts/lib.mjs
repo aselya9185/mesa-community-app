@@ -34,7 +34,7 @@ export function service({ localOnly = false } = {}) {
 export const loginEmail = (phone) => `${phone.replace(/\D/g, '')}@members.mesa.invalid`;
 
 /** create (or reuse) an auth user + profile + private number. Returns the user id. */
-export async function upsertMember(svc, { phone, password, name, instagram, role = 'member', area = null, likes = [], trains_at = [], bio = null }) {
+export async function upsertMember(svc, { phone, password, name, instagram, instagramPublic = false, role = 'member', area = null, likes = [], trains_at = [], bio = null }) {
   const email = loginEmail(phone);
   let id;
   const created = await svc.auth.admin.createUser({ email, password, email_confirm: true });
@@ -46,8 +46,13 @@ export async function upsertMember(svc, { phone, password, name, instagram, role
   } else {
     id = created.data.user.id;
   }
-  const p = await svc.from('profiles').upsert({ id, name, instagram, role, status: 'active', area, likes, trains_at, bio });
+  const p = await svc.from('profiles').upsert({ id, name, role, status: 'active', area, likes, trains_at, bio });
   if (p.error) throw p.error;
+  if (instagram) {
+    // the handle lives in its own table: private unless instagramPublic
+    const ig = await svc.from('member_instagram').upsert({ user_id: id, handle: instagram, is_public: instagramPublic }, { onConflict: 'user_id' });
+    if (ig.error) throw ig.error;
+  }
   const m = await svc.from('member_private').upsert({ user_id: id, whatsapp_e164: phone });
   if (m.error) throw m.error;
   return id;

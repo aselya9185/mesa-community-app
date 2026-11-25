@@ -7,7 +7,9 @@ test.afterAll(cleanup);
 // the whole way in: the admin sets up two-step sign-in, approves a request, the applicant opens her one-time link
 test('admin approves a request and the applicant joins with her one-time link', async ({ page, browser, baseURL }, info) => {
   const admin = await makeUser({ role: 'admin', name: 'doorkeeper' });
-  const applicant = await makeApplication({ name: 'Newcomer', instagram: '@new.comer' });
+  // a unique name per run, so leftovers from other runs never match
+  const first = `Nw${Date.now().toString(36)}`;
+  const applicant = await makeApplication({ name: first, instagram: '@new.comer' });
 
   await login(page, admin, '/admin/requests');
   // first visit: set up two-step sign-in with the secret shown on screen, then type the current code
@@ -17,7 +19,7 @@ test('admin approves a request and the applicant joins with her one-time link', 
   await page.getByRole('button', { name: /open the door|check/i }).click();
 
   await expect(page.getByRole('heading', { name: "who's at the door" })).toBeVisible();
-  await expect(page.locator('strong', { hasText: /^newcomer$/i })).toBeVisible();
+  await expect(page.locator('strong', { hasText: new RegExp(`^${first}$`, 'i') })).toBeVisible();
   await page.getByRole('button', { name: 'approve' }).first().click();
 
   // the invite message carries a personal link on this site
@@ -29,7 +31,7 @@ test('admin approves a request and the applicant joins with her one-time link', 
   const ctx = await browser.newContext({ ...device, baseURL });
   const her = await ctx.newPage();
   await her.goto(link!);
-  await expect(her.getByRole('heading', { name: /you.re in, newcomer/i })).toBeVisible();
+  await expect(her.getByRole('heading', { name: new RegExp(`you.re in, ${first}`, 'i') })).toBeVisible();
   await her.getByLabel('password', { exact: true }).fill('welcome-test-1');
   await her.getByRole('button', { name: /.+/ }).filter({ hasText: /in|join|go|set/i }).last().click();
   await expect(her).toHaveURL(/onboarding\/card|\/plans/);

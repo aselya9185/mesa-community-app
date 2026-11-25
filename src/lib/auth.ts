@@ -5,7 +5,10 @@ import { supabaseServer } from './supabase/server';
 export type Me = {
   id: string;
   name: string;
+  /** her own handle (only she and the admin see it unless she opts in) */
   instagram: string | null;
+  /** other members may see her handle */
+  instagramPublic: boolean;
   area: string | null;
   bio: string | null;
   likes: string[];
@@ -24,14 +27,17 @@ export const requireMember = cache(async (): Promise<Me> => {
   const supabase = await supabaseServer();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect('/login');
-  const { data: me } = await supabase
-    .from('profiles')
-    .select('id, name, instagram, area, bio, likes, trains_at, member_no, member_code, photo_path, role')
-    .eq('id', auth.user.id)
-    .maybeSingle();
+  const [{ data: me }, { data: ig }] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, name, area, bio, likes, trains_at, member_no, member_code, photo_path, role')
+      .eq('id', auth.user.id)
+      .maybeSingle(),
+    supabase.from('member_instagram').select('handle, is_public').eq('user_id', auth.user.id).maybeSingle(),
+  ]);
   if (!me) {
     await supabase.auth.signOut();
     redirect('/login');
   }
-  return me as Me;
+  return { ...me, instagram: (ig?.handle as string | undefined) ?? null, instagramPublic: (ig?.is_public as boolean | undefined) ?? false } as Me;
 });

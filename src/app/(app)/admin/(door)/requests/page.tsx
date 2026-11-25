@@ -10,6 +10,8 @@ const STATUSES: Status[] = ['pending', 'approved', 'rejected'];
 
 const pretty = (e164: string) => parsePhoneNumberFromString(e164)?.formatInternational() ?? e164;
 const one = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
+/** the member who vouched: her handle comes from the private handle table (the admin may read it) */
+type Vouched = { member_instagram: { handle: string } | { handle: string }[] | null };
 
 export default async function RequestsPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const { status: raw } = await searchParams;
@@ -20,7 +22,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
     Promise.all(STATUSES.map((s) => supabase.from('applications').select('id', { count: 'exact', head: true }).eq('status', s))),
     supabase
       .from('applications')
-      .select('id, name, instagram, whatsapp_e164, created_at, profile_id, vouched:vouched_by(instagram)')
+      .select('id, name, instagram, whatsapp_e164, created_at, profile_id, vouched:vouched_by(member_instagram(handle))')
       .eq('status', status)
       .order('created_at', { ascending: false })
       .limit(100),
@@ -31,14 +33,14 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
       .order('created_at'),
   ]);
 
-  const items: RequestItem[] = ((rows.data ?? []) as unknown as { id: string; name: string; instagram: string; whatsapp_e164: string; created_at: string; profile_id: string | null; vouched: { instagram: string | null } | { instagram: string | null }[] | null }[]).map((r) => ({
+  const items: RequestItem[] = ((rows.data ?? []) as unknown as { id: string; name: string; instagram: string; whatsapp_e164: string; created_at: string; profile_id: string | null; vouched: Vouched | Vouched[] | null }[]).map((r) => ({
     id: r.id,
     name: r.name,
     instagram: r.instagram,
     whatsapp: pretty(r.whatsapp_e164),
     createdAt: r.created_at,
     joined: !!r.profile_id,
-    vouchedBy: one(r.vouched)?.instagram ?? null,
+    vouchedBy: one(one(r.vouched)?.member_instagram ?? null)?.handle ?? null,
   }));
 
   const linkRequests: LinkRequestItem[] = ((links.data ?? []) as unknown as { id: string; application_id: string | null; profile_id: string | null; created_at: string; application: { name: string } | { name: string }[] | null; profile: { name: string } | { name: string }[] | null }[]).map((l) => ({
