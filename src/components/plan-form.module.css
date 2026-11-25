@@ -84,9 +84,11 @@
   min-width: 0;
 }
 
-/* iOS gives date and time fields a minimum width of their own: make them follow the column */
+/* iOS gives date and time fields a minimum width of their own: make them follow the column.
+   They stay flex boxes, centred vertically (display: block would push the numbers to the top). */
 .row input {
-  display: block;
+  display: flex;
+  align-items: center;
   width: 100%;
   min-width: 0;
   max-width: 100%;
@@ -166,15 +168,17 @@
   flex: 1;
 }
 
-.hiddenOnPhone {
+/* the `.form` prefix makes these win over the button and field classes they are combined with, whatever order the
+   stylesheets load in (in development the order differs and "next" showed up next to "drop it" on desktop) */
+.form .hiddenOnPhone {
   display: none;
 }
 
 @media (min-width: 1000px) {
-  .hiddenOnPhone {
+  .form .hiddenOnPhone {
     display: flex;
   }
-  .phoneOnly {
+  .form .phoneOnly {
     display: none;
   }
   .stepCount {

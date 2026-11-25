@@ -16,18 +16,22 @@ export async function login(page: Page, user: { phone: string; password: string 
 
 /** tomorrow as yyyy-mm-dd: always in the future, whatever the time zone */
 export function tomorrow(): string {
-  const d = new Date(Date.now() + 36 * 3600 * 1000);
-  return d.toISOString().slice(0, 10);
+  return inDays(1.5);
+}
+
+/** a day n days from now as yyyy-mm-dd */
+export function inDays(n: number): string {
+  return new Date(Date.now() + n * 24 * 3600 * 1000).toISOString().slice(0, 10);
 }
 
 /** fill the plan form on any screen size: on phones it has three steps, on larger screens one page */
-export async function dropPlan(page: Page, plan: { title: string; place: string; poll?: string[]; booking?: string; plusOne?: boolean }) {
+export async function dropPlan(page: Page, plan: { title: string; place: string; poll?: string[]; booking?: string; plusOne?: boolean; daysAhead?: number }) {
   await page.goto('/plans/new');
   await page.getByLabel('what are you doing?').fill(plan.title);
   await page.getByLabel('where?').fill(plan.place);
   const next = page.getByRole('button', { name: 'next' });
   if (await next.isVisible()) await next.click();
-  await page.getByLabel('day').fill(tomorrow());
+  await page.getByLabel('day').fill(plan.daysAhead ? inDays(plan.daysAhead) : tomorrow());
   await page.getByLabel('time').fill('19:00');
   if (plan.booking) await page.getByLabel('booking link').fill(plan.booking);
   if (await next.isVisible()) await next.click();
