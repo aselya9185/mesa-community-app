@@ -96,3 +96,22 @@ test('plans after starts empty: nothing is filled in, but anyone going can add t
   await expect(page.getByRole('button', { name: /sunset walk/ })).toHaveAttribute('aria-pressed', 'true');
   await ctx.close();
 });
+
+test('a plan dropped for later stays in its host\'s own list, but the others only see this week', async ({ page, browser, baseURL }, info) => {
+  const host = await makeUser({ name: 'laterhost' });
+  const other = await makeUser({ name: 'laterother' });
+  const title = `Later ${Date.now()}`;
+
+  await login(page, host);
+  await dropPlan(page, { title, place: 'Studio', daysAhead: 14 }); // well beyond the 7 days of "this week"
+  await page.goto('/plans');
+  await expect(page.getByText(title).first()).toBeVisible();
+
+  const device = info.project.name === 'phone' ? devices['Pixel 7'] : devices['Desktop Chrome'];
+  const ctx = await browser.newContext({ ...device, baseURL });
+  const her = await ctx.newPage();
+  await login(her, other);
+  await her.goto('/plans');
+  await expect(her.getByText(title)).toHaveCount(0);
+  await ctx.close();
+});

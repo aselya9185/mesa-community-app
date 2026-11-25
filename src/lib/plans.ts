@@ -38,6 +38,17 @@ export async function getFeed(): Promise<PlanRow[]> {
   return withPhotos(((data ?? []) as unknown as Raw[]).map(shape));
 }
 
+/**
+ * The plans tab: this week's plans, plus every upcoming plan she hosts or has joined. Without the second part a plan she
+ * dropped for later (say in ten days) would be missing from her own list. Other people's plans keep the 7-day window.
+ */
+export async function getFeedFor(userId: string): Promise<PlanRow[]> {
+  const [feed, mine] = await Promise.all([getFeed(), getMyPlans(userId)]);
+  const byId = new Map(feed.map((p) => [p.id, p]));
+  for (const p of mine) byId.set(p.id, p);
+  return [...byId.values()].sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+}
+
 export async function getPlan(id: string): Promise<PlanRow | null> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
   const supabase = await supabaseServer();

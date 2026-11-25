@@ -4,6 +4,10 @@ All notable changes. Format based on [Keep a Changelog](https://keepachangelog.c
 
 ## [Unreleased]
 
+### Fixed
+- A plan you host or have joined always stays in your plans list, even when it is more than a week away (it used to show only in chats). Other people's plans still show for the next 7 days.
+- Plan form: day and time numbers are centred again, and "next" no longer shows beside "drop it" on desktop.
+
 ### Changed
 - Instagram handles are private by default: only the member and the admin see a handle, and other members see it only when she turns on "show my instagram on my card". The handle moved to its own table with its own access rules (database migration, with tests). Existing handles are kept and stay private until their owner opts in.
 - The request form says that the handle is only for the admin.
