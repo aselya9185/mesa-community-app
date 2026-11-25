@@ -66,6 +66,8 @@ export async function makeUser(opts: {
   status?: 'active' | 'removed';
   name?: string;
   withProfile?: boolean;
+  /** show her instagram handle to other members (it is private unless she opts in) */
+  instagramPublic?: boolean;
 } = {}): Promise<TestUser> {
   const svc = serviceClient();
   const phone = randomPhone();
@@ -83,13 +85,14 @@ export async function makeUser(opts: {
     const p = await svc.from('profiles').insert({
       id,
       name,
-      instagram: `@${name}`,
       role: opts.role ?? 'member',
       status: opts.status ?? 'active',
     });
     if (p.error) throw new Error(`profile insert failed: ${p.error.message}`);
     const m = await svc.from('member_private').insert({ user_id: id, whatsapp_e164: phone });
     if (m.error) throw new Error(`member_private insert failed: ${m.error.message}`);
+    const ig = await svc.from('member_instagram').insert({ user_id: id, handle: `@${name}`, is_public: opts.instagramPublic ?? false });
+    if (ig.error) throw new Error(`member_instagram insert failed: ${ig.error.message}`);
   }
   return { id, phone, password, name };
 }

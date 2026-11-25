@@ -77,9 +77,12 @@ export async function handleApply(svc: SupabaseClient, input: ApplyInput, ctx: {
   // 1) already a member?
   const { data: priv } = await svc.from('member_private').select('user_id').eq('whatsapp_e164', e164).maybeSingle();
   if (priv) {
-    const { data: prof } = await svc.from('profiles').select('id, instagram, status').eq('id', priv.user_id).single();
+    const [{ data: prof }, { data: own }] = await Promise.all([
+      svc.from('profiles').select('id, status').eq('id', priv.user_id).single(),
+      svc.from('member_instagram').select('handle').eq('user_id', priv.user_id).maybeSingle(),
+    ]);
     if (prof && prof.status === 'active') {
-      if (handleKey(prof.instagram ?? '') !== ig) return { state: 'listed' }; // can't confirm: say nothing
+      if (handleKey((own?.handle as string | undefined) ?? '') !== ig) return { state: 'listed' }; // can't confirm: say nothing
       if (intent === 'request_link') return flag(svc, { profile_id: prof.id as string });
       return { state: 'member' };
     }

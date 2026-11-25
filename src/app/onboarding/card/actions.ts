@@ -54,13 +54,28 @@ export async function saveCardAction(_prev: CardState, formData: FormData): Prom
       ...photo,
       name: parsed.data.name,
       area: parsed.data.area || null,
-      instagram: parsed.data.instagram ? displayHandle(parsed.data.instagram) : null,
       trains_at: trains,
       likes,
       bio: parsed.data.bio || null,
     })
     .eq('id', auth.user.id);
   if (error) return { errors: { name: 'could not save your card. try again.' } };
+  // her handle is private unless she ticks "show on my card"; the same rules apply (she can only write her own row)
+  const handle = parsed.data.instagram ? displayHandle(parsed.data.instagram) : null;
+  const isPublic = get('instagramPublic') === 'on';
+  let igResult: { error: unknown } = { error: null };
+  if (!handle) {
+    igResult = await supabase.from('member_instagram').delete().eq('user_id', auth.user.id);
+  } else {
+    // update first; the owner column can never be rewritten (no grant), so a first-time handle is a plain insert
+    const upd = await supabase.from('member_instagram').update({ handle, is_public: isPublic }).eq('user_id', auth.user.id).select('user_id');
+    igResult = upd.error
+      ? upd
+      : upd.data?.length
+        ? upd
+        : await supabase.from('member_instagram').insert({ user_id: auth.user.id, handle, is_public: isPublic });
+  }
+  if (igResult.error) return { errors: { instagram: 'could not save your instagram. try again.' } };
   // tidy up the photo she replaced or removed
   if (oldPath && 'photo_path' in photo && photo.photo_path !== oldPath) await supabase.storage.from('avatars').remove([oldPath]);
   redirect(safeNext(get('next')));

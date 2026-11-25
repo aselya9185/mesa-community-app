@@ -20,8 +20,13 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 
   const supabase = await supabaseServer();
-  const { data } = await supabase.from('profiles').select('id, name, instagram, area, bio, likes, trains_at, member_no, photo_path').eq('id', id).maybeSingle();
-  if (!data) notFound();
+  // the handle comes back only when she turned it on for other members (the database decides)
+  const [{ data: profile }, { data: ig }] = await Promise.all([
+    supabase.from('profiles').select('id, name, area, bio, likes, trains_at, member_no, photo_path').eq('id', id).maybeSingle(),
+    supabase.from('member_instagram').select('handle').eq('user_id', id).maybeSingle(),
+  ]);
+  if (!profile) notFound();
+  const data = { ...profile, instagram: (ig?.handle as string | undefined) ?? null };
   const { data: block } = await supabase.from('blocks').select('blocked_id').eq('blocked_id', id).maybeSingle();
   const blocked = !!block;
   const m = { ...(data as CardMember & { photo_path: string | null }), photo: await signAvatar((data as { photo_path: string | null }).photo_path) } as CardMember;

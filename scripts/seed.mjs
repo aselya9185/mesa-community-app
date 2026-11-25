@@ -6,10 +6,10 @@ const svc = service({ localOnly: true });
 const password = 'mesa-dev-password';
 
 const people = [
-  { phone: '+34600000001', name: 'Laia', instagram: '@laia.moves', role: 'admin', area: 'Poblenou', likes: ['zumba', 'strength', 'running'], trains_at: ['Studio Poblenou', 'Gym Gràcia'], bio: 'class collector. matcha after, always.' },
-  { phone: '+34600000002', name: 'Marta', instagram: '@marta.matcha', area: 'Gràcia', likes: ['pilates', 'yoga'], trains_at: ['Studio Poblenou'] },
-  { phone: '+34600000003', name: 'Anna', instagram: '@anna.runs', area: 'Eixample', likes: ['running'], trains_at: [] },
-  { phone: '+34600000004', name: 'Carla', instagram: '@carla.cafe', area: 'Born', likes: ['zumba'], trains_at: [] },
+  { phone: '+34600000001', name: 'Laia', instagram: '@laia.moves', instagramPublic: true, role: 'admin', area: 'Poblenou', likes: ['zumba', 'strength', 'running'], trains_at: ['Studio Poblenou', 'Gym Gràcia'], bio: 'class collector. matcha after, always.' },
+  { phone: '+34600000002', name: 'Marta', instagram: '@marta.matcha', instagramPublic: true, area: 'Gràcia', likes: ['pilates', 'yoga'], trains_at: ['Studio Poblenou'] },
+  { phone: '+34600000003', name: 'Anna', instagram: '@anna.runs', instagramPublic: true, area: 'Eixample', likes: ['running'], trains_at: [] },
+  { phone: '+34600000004', name: 'Carla', instagram: '@carla.cafe', instagramPublic: true, area: 'Born', likes: ['zumba'], trains_at: [] },
 ];
 
 for (const p of people) {

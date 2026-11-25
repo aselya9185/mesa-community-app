@@ -293,3 +293,20 @@
   outline: 2px solid var(--pink-soft);
   outline-offset: 3px;
 }
+
+/* a labelled tick box under a field (for example: show my instagram on my card) */
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--touch);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.checkRow input {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  accent-color: var(--pink);
+}

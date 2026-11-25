@@ -74,7 +74,7 @@ export function ApplyForm({ vouchCode, fromForgot }: { vouchCode?: string; fromF
           your instagram
         </label>
         <input id="instagram" name="instagram" defaultValue={state?.values.instagram} className={styles.input} placeholder="@" autoCapitalize="none" autoCorrect="off" maxLength={31} aria-invalid={!!errors?.instagram} aria-describedby={errors?.instagram ? 'ig-err' : undefined} />
-        {errors?.instagram && <span id="ig-err" className={styles.error}>{errors.instagram}</span>}
+        {errors?.instagram ? <span id="ig-err" className={styles.error}>{errors.instagram}</span> : <span className={styles.hint}>only the club admin sees this, to check your request. it is never shown to members unless you choose to.</span>}
       </div>
       <div className={styles.field}>
         <label htmlFor="whatsapp" className={styles.label}>

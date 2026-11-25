@@ -5,6 +5,10 @@ All notable changes. Format based on [Keep a Changelog](https://keepachangelog.c
 ## [Unreleased]
 
 ### Changed
+- Instagram handles are private by default: only the member and the admin see a handle, and other members see it only when she turns on "show my instagram on my card". The handle moved to its own table with its own access rules (database migration, with tests). Existing handles are kept and stay private until their owner opts in.
+- The request form says that the handle is only for the admin.
+
+### Changed
 - "Plans after" is always there for people who are going, even when the host picked no options: anyone can add the first idea, and others vote.
 
 ### Fixed

@@ -36,7 +36,11 @@ export function CardForm({ me, photoUrl = null, next = '/plans', heading = 'make
           instagram
         </label>
         <input id="instagram" name="instagram" className={styles.input} defaultValue={me.instagram ?? ''} autoCapitalize="none" aria-invalid={!!errors?.instagram} />
-        <span className={errors?.instagram ? styles.error : styles.hint}>{errors?.instagram ?? 'shown on your card so members can find you'}</span>
+        <span className={errors?.instagram ? styles.error : styles.hint}>{errors?.instagram ?? 'private: only the club admin sees it, to check your request.'}</span>
+        <label className={styles.checkRow}>
+          <input type="checkbox" name="instagramPublic" defaultChecked={me.instagramPublic} />
+          <span>show my instagram on my card, so other members can find me</span>
+        </label>
       </div>
       <div className={styles.field}>
         <label htmlFor="trainsAt" className={styles.label}>
