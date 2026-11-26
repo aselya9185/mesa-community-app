@@ -4,6 +4,14 @@ All notable changes. Format based on [Keep a Changelog](https://keepachangelog.c
 
 ## [Unreleased]
 
+### Security
+- A member who is removed, or who rejoins, always comes back with her instagram handle private.
+- A form error on your card no longer re-ticks "show my instagram": your choice and what you typed are kept.
+- The database refuses blank or link-shaped instagram handles.
+- The door list shows who an applicant says invited her.
+- Handles must look like handles everywhere (request form, "invited by", card, door list); older values that did not are cleaned up.
+- Removing a member reports an error if it fails; a voucher without a handle still shows by name; the request form keeps "invited by" after a mistake; the card form puts the cursor on the field to fix.
+
 ### Fixed
 - A plan you host or have joined always stays in your plans list, even when it is more than a week away (it used to show only in chats). Other people's plans still show for the next 7 days.
 - Plan form: day and time numbers are centred again, and "next" no longer shows beside "drop it" on desktop.

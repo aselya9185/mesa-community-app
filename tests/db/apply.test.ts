@@ -126,6 +126,19 @@ describe('applying twice', () => {
   });
 });
 
+describe('who invited her', () => {
+  it('is stored as a handle, and a value that is not one is refused with a message', async () => {
+    const phone = randomPhone();
+    const bad = await handleApply(svc, { name: 'Lu', instagram: '@lu.demo', whatsapp: phone, invitedBy: 'https://instagram.com/x' }, ip());
+    expect(bad.state).toBe('invalid');
+    expect(bad.errors).toHaveProperty('invitedBy');
+    const good = await handleApply(svc, { name: 'Lu', instagram: '@lu.demo', whatsapp: phone, invitedBy: 'carla.runs' }, ip());
+    expect(good.state).toBe('listed');
+    const { data } = await svc.from('applications').select('invited_by_instagram').eq('whatsapp_e164', phone).single();
+    expect(data?.invited_by_instagram).toBe('@carla.runs');
+  });
+});
+
 describe('an existing member', () => {
   it('sees "member" only with number + instagram; "forgot" flags the door list', async () => {
     const ok = await handleApply(svc, { name: 's', instagram: `@${member.name}`, whatsapp: member.phone }, ip());

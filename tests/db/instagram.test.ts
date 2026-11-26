@@ -125,3 +125,49 @@ describe('the old public column is gone', () => {
     expect((await svc.from('member_instagram').select('user_id').eq('user_id', temp.id)).data).toHaveLength(0);
   });
 });
+
+describe('privacy cannot be left behind', () => {
+  it('removing a member switches her handle back to private', async () => {
+    const temp = await makeUser({ name: 'leaver', instagramPublic: true });
+    const { error } = await (await signInAal2(boss)).rpc('admin_remove_member', { p_user: temp.id });
+    expect(error).toBeNull();
+    const { data } = await serviceClient().from('member_instagram').select('is_public').eq('user_id', temp.id).single();
+    expect(data?.is_public).toBe(false);
+  });
+
+  it('is private by default when a row is created without saying otherwise', async () => {
+    const temp = await makeUser({ name: 'plain' });
+    const svc = serviceClient();
+    await svc.from('member_instagram').delete().eq('user_id', temp.id);
+    await svc.from('member_instagram').insert({ user_id: temp.id, handle: '@plain' });
+    expect((await svc.from('member_instagram').select('is_public').eq('user_id', temp.id).single()).data?.is_public).toBe(false);
+  });
+
+  it.each(['   ', '@', '@ana maria', 'https://instagram.com/ana', '@@ana', '\u200b', '\u2800', 'instagram.com?igsh=1', 'https:\\\\instagram.com', 'a'.repeat(31)])('refuses the handle %j', async (handle) => {
+    const me = await signIn(cora);
+    const { error } = await me.from('member_instagram').update({ handle }).eq('user_id', cora.id);
+    expect(error).not.toBeNull();
+  });
+});
+
+describe('the same handle rule for requests', () => {
+  const svc = serviceClient();
+  const base = () => ({ name: 'x', instagram: '@fine.name', whatsapp_e164: `+3469${Math.floor(1_000_000 + Math.random() * 8_999_999)}` });
+
+  it.each(['   ', 'https://instagram.com/x', '\u200b'])('refuses %j as an applicant handle or as "invited by"', async (bad) => {
+    expect((await svc.from('applications').insert({ ...base(), instagram: bad })).error).not.toBeNull();
+    expect((await svc.from('applications').insert({ ...base(), invited_by_instagram: bad })).error).not.toBeNull();
+  });
+
+  it('removing a member works whether her handle is public or private, or she has none', async () => {
+    const admin = await signInAal2(boss);
+    const shown = await makeUser({ name: 'shown', instagramPublic: true });
+    const hidden = await makeUser({ name: 'hidden' });
+    const none = await makeUser({ name: 'nohandle' });
+    await svc.from('member_instagram').delete().eq('user_id', none.id);
+    for (const m of [shown, hidden, none]) {
+      expect((await admin.rpc('admin_remove_member', { p_user: m.id })).error).toBeNull();
+      expect((await svc.from('profiles').select('status').eq('id', m.id).single()).data?.status).toBe('removed');
+    }
+  });
+});

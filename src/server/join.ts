@@ -136,10 +136,12 @@ async function reactivate(svc: SupabaseClient, applicationId: string, phone: str
   const userId = priv.user_id as string;
   const { data: prof } = await svc.from('profiles').select('status').eq('id', userId).single();
   if (!prof || prof.status !== 'removed') return null;
+  // her handle comes back PRIVATE, whatever she had chosen before. Written first: if it fails, nothing else changes.
+  const ig = await svc.from('member_instagram').upsert({ user_id: userId, handle: instagram, is_public: false }, { onConflict: 'user_id' });
+  if (ig.error) return null;
   const { error } = await svc.auth.admin.updateUserById(userId, { password, ban_duration: 'none' });
   if (error) return null;
   await svc.from('profiles').update({ status: 'active', name }).eq('id', userId);
-  await svc.from('member_instagram').upsert({ user_id: userId, handle: instagram }, { onConflict: 'user_id' });
   await svc.from('applications').update({ profile_id: userId }).eq('id', applicationId);
   await svc.from('link_requests').update({ handled_at: new Date().toISOString() }).eq('application_id', applicationId).is('handled_at', null);
   return { userId, phone };

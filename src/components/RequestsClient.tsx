@@ -9,7 +9,7 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { InvitePanel } from './InvitePanel';
 import styles from './requests.module.css';
 
-export type RequestItem = { id: string; name: string; instagram: string; whatsapp: string; createdAt: string; joined: boolean; vouchedBy: string | null };
+export type RequestItem = { id: string; name: string; instagram: string; invitedBy: string | null; whatsapp: string; createdAt: string; joined: boolean; vouchedBy: string | null };
 export type LinkRequestItem = { id: string; applicationId: string | null; profileId: string | null; name: string; createdAt: string };
 type Status = 'pending' | 'approved' | 'rejected';
 type Ok = Extract<InviteOut, { ok: true }>;
@@ -95,6 +95,7 @@ export function RequestsClient({ status, counts, items, linkRequests }: { status
               </div>
               <p className={styles.details}>
                 instagram <b>{r.instagram}</b> · whatsapp <b>{r.whatsapp}</b>
+                {r.invitedBy && <> · invited by {r.invitedBy}</>}
               </p>
               {status === 'pending' && (
                 <div className={styles.actions}>

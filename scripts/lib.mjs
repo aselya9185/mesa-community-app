@@ -35,6 +35,8 @@ export const loginEmail = (phone) => `${phone.replace(/\D/g, '')}@members.mesa.i
 
 /** create (or reuse) an auth user + profile + private number. Returns the user id. */
 export async function upsertMember(svc, { phone, password, name, instagram, instagramPublic = false, role = 'member', area = null, likes = [], trains_at = [], bio = null }) {
+  // checked before anything is created, so a typo never leaves a half-made account
+  if (instagram && !/^@?[A-Za-z0-9._]{1,30}$/.test(instagram)) throw new Error('instagram must be a handle like @name, not a link');
   const email = loginEmail(phone);
   let id;
   const created = await svc.auth.admin.createUser({ email, password, email_confirm: true });

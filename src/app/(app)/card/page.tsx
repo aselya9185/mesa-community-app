@@ -27,6 +27,7 @@ export default async function CardPage() {
         <NotificationBell className={styles.bellMobile} />
       </div>
       <MemberCard m={{ ...me, photo: await signAvatar(me.photo_path) }} />
+      {me.instagram && !me.instagramPublic && <p className={styles.hint}>your instagram is private: only you and the admin see it. change that in edit card.</p>}
       <div className={styles.buttons}>
         <Link href="/card/edit" className={styles.ghost}>
           edit card

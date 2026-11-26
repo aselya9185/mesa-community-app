@@ -23,8 +23,8 @@ const apps = [
   { name: 'Mireia', instagram: '@mireia.yoga', whatsapp_e164: '+34600555666' },
 ];
 for (const a of apps) {
-  const { error } = await svc.from('applications').upsert(a, { onConflict: 'whatsapp_e164', ignoreDuplicates: true });
-  if (error && !/duplicate|conflict|unique/i.test(error.message)) throw error;
+  const { error } = await svc.from('applications').insert(a);
+  if (error && error.code !== '23505') throw error; // 23505: already seeded
 }
 console.log(`\nlog in with any number above and password "${password}".`);
 console.log('the admin needs TOTP enrolled to use the door list.');
