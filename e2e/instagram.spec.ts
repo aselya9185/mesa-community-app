@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { cleanup, login, makeUser, resetRateLimits } from './support';
+import { cleanup, login, makeUser, resetRateLimits, serviceClient } from './support';
 
 test.beforeEach(resetRateLimits);
 test.afterAll(cleanup);
@@ -35,4 +35,29 @@ test('an instagram handle is hidden from other members until she turns it on', a
   await page.goto(`/members/${ana.id}`);
   await expect(page.getByText('@anahandle')).toHaveCount(0);
   await ctx.close();
+});
+
+test('a mistake in the form never publishes a handle she just switched off', async ({ page }) => {
+  const ana = await makeUser({ name: 'anaerror', instagramPublic: true });
+  await login(page, ana, '/card/edit');
+  const box = page.getByRole('checkbox', { name: /show my instagram on my card/ });
+  const handle = page.getByRole('textbox', { name: 'instagram' });
+  await expect(box).toBeChecked();
+  await expect(page.getByText('members can see it on your card')).toBeVisible();
+
+  // she switches it off and also types something the form rejects
+  await box.uncheck();
+  await expect(page.getByText('private: only the club admin sees it')).toBeVisible();
+  await handle.fill('https://instagram.com/anaerror');
+  await page.getByRole('button', { name: 'done' }).click();
+
+  await expect(page.getByText('that does not look like an instagram handle')).toBeVisible();
+  await expect(box).not.toBeChecked(); // her choice is kept
+  await expect(handle).toHaveValue('https://instagram.com/anaerror'); // and what she typed
+
+  await handle.fill('@anaerror');
+  await page.getByRole('button', { name: 'done' }).click();
+  await page.waitForURL((url) => !url.pathname.includes('/card/edit'));
+  const { data } = await serviceClient().from('member_instagram').select('is_public').eq('user_id', ana.id).single();
+  expect(data?.is_public).toBe(false);
 });

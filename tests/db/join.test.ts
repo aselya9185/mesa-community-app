@@ -123,6 +123,20 @@ describe('a removed member coming back', () => {
     expect((await anonClient().auth.signInWithPassword({ email: loginEmail(gone.phone), password: 'welcome-back-2026' })).error).toBeNull();
   });
 
+  it('comes back with her instagram private, even if it was public before she was removed', async () => {
+    const gone = await makeUser({ name: 'Quiet', instagramPublic: true });
+    await svc.from('profiles').update({ status: 'removed' }).eq('id', gone.id);
+    // a row left public from before (whatever removal did or did not do): rejoining must still make it private
+    await svc.from('member_instagram').update({ is_public: true }).eq('user_id', gone.id);
+    const app = await makeApplication({ name: 'Quiet', instagram: '@quiet.again', whatsapp_e164: gone.phone, status: 'approved' });
+    const token = generateToken();
+    await insertInvite({ applicationId: app.id, purpose: 'invite', token });
+
+    expect((await redeemInvite(svc, token, GOOD, ip())).ok).toBe(true);
+    const { data } = await svc.from('member_instagram').select('handle, is_public').eq('user_id', gone.id).single();
+    expect(data).toEqual({ handle: '@quiet.again', is_public: false });
+  });
+
   it('an active member cannot be taken over by someone redeeming a link for her number', async () => {
     const active = await makeUser({ name: 'Stay' });
     const app = await makeApplication({ whatsapp_e164: active.phone, status: 'approved' });

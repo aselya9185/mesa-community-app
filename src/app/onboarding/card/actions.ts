@@ -15,10 +15,25 @@ const schema = z.object({
   bio: z.string().trim().max(280).optional(),
 });
 
-export type CardState = { errors: Partial<Record<'name' | 'instagram', string>> } | null;
+/** what she submitted, so a form with an error comes back exactly as she left it */
+export type CardValues = { name: string; area: string; instagram: string; instagramPublic: boolean; trainsAt: string; likes: string[]; bio: string };
+export type CardState = { errors: Partial<Record<'name' | 'instagram', string>>; values: CardValues; attempt: number } | null;
 
-export async function saveCardAction(_prev: CardState, formData: FormData): Promise<CardState> {
+export async function saveCardAction(prev: CardState, formData: FormData): Promise<CardState> {
   const get = (k: string) => String(formData.get(k) ?? '');
+  const failed = (errors: NonNullable<CardState>['errors']): CardState => ({
+    errors,
+    attempt: (prev?.attempt ?? 0) + 1,
+    values: {
+      name: get('name'),
+      area: get('area'),
+      instagram: get('instagram'),
+      instagramPublic: get('instagramPublic') === 'on',
+      trainsAt: get('trainsAt'),
+      likes: formData.getAll('likes').map(String),
+      bio: get('bio'),
+    },
+  });
   const parsed = schema.safeParse({ name: get('name'), area: get('area'), instagram: get('instagram'), trainsAt: get('trainsAt'), bio: get('bio') });
   if (!parsed.success) {
     const errors: NonNullable<CardState>['errors'] = {};
@@ -26,7 +41,7 @@ export async function saveCardAction(_prev: CardState, formData: FormData): Prom
       const k = i.path[0];
       if (k === 'name' || k === 'instagram') errors[k] = i.message;
     }
-    return { errors };
+    return failed(errors);
   }
   const likes = formData.getAll('likes').map(String).filter((l): l is (typeof LIKES)[number] => (LIKES as readonly string[]).includes(l));
   const trains = (parsed.data.trainsAt ?? '')
@@ -59,7 +74,7 @@ export async function saveCardAction(_prev: CardState, formData: FormData): Prom
       bio: parsed.data.bio || null,
     })
     .eq('id', auth.user.id);
-  if (error) return { errors: { name: 'could not save your card. try again.' } };
+  if (error) return failed({ name: 'could not save your card. try again.' });
   // her handle is private unless she ticks "show on my card"; the same rules apply (she can only write her own row)
   const handle = parsed.data.instagram ? displayHandle(parsed.data.instagram) : null;
   const isPublic = get('instagramPublic') === 'on';
@@ -75,7 +90,7 @@ export async function saveCardAction(_prev: CardState, formData: FormData): Prom
         ? upd
         : await supabase.from('member_instagram').insert({ user_id: auth.user.id, handle, is_public: isPublic });
   }
-  if (igResult.error) return { errors: { instagram: 'could not save your instagram. try again.' } };
+  if (igResult.error) return failed({ instagram: 'could not save your instagram. try again.' });
   // tidy up the photo she replaced or removed
   if (oldPath && 'photo_path' in photo && photo.photo_path !== oldPath) await supabase.storage.from('avatars').remove([oldPath]);
   redirect(safeNext(get('next')));

@@ -9,7 +9,7 @@ test('admin approves a request and the applicant joins with her one-time link', 
   const admin = await makeUser({ role: 'admin', name: 'doorkeeper' });
   // a unique name per run, so leftovers from other runs never match
   const first = `Nw${Date.now().toString(36)}`;
-  const applicant = await makeApplication({ name: first, instagram: '@new.comer' });
+  const applicant = await makeApplication({ name: first, instagram: '@new.comer', invited_by_instagram: '@a.friend' });
 
   await login(page, admin, '/admin/requests');
   // first visit: set up two-step sign-in with the secret shown on screen, then type the current code
@@ -20,7 +20,11 @@ test('admin approves a request and the applicant joins with her one-time link', 
 
   await expect(page.getByRole('heading', { name: "who's at the door" })).toBeVisible();
   await expect(page.locator('strong', { hasText: new RegExp(`^${first}$`, 'i') })).toBeVisible();
-  await page.getByRole('button', { name: 'approve' }).first().click();
+  // the admin sees what she needs to check a request: the applicant's handle and who she says invited her
+  const card = page.getByRole('listitem').filter({ hasText: new RegExp(first, 'i') });
+  await expect(card.getByText('@new.comer')).toBeVisible();
+  await expect(card.getByText('invited by @a.friend')).toBeVisible();
+  await card.getByRole('button', { name: 'approve' }).click();
 
   // the invite message carries a personal link on this site
   const link = (await page.getByText(/\/j\/[a-z0-9]{32}/).first().innerText()).match(/https?:\/\/\S+\/j\/[a-z0-9]{32}/)?.[0];

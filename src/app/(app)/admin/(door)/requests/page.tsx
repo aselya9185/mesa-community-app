@@ -22,7 +22,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
     Promise.all(STATUSES.map((s) => supabase.from('applications').select('id', { count: 'exact', head: true }).eq('status', s))),
     supabase
       .from('applications')
-      .select('id, name, instagram, whatsapp_e164, created_at, profile_id, vouched:vouched_by(member_instagram(handle))')
+      .select('id, name, instagram, invited_by_instagram, whatsapp_e164, created_at, profile_id, vouched:vouched_by(member_instagram(handle))')
       .eq('status', status)
       .order('created_at', { ascending: false })
       .limit(100),
@@ -33,10 +33,11 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
       .order('created_at'),
   ]);
 
-  const items: RequestItem[] = ((rows.data ?? []) as unknown as { id: string; name: string; instagram: string; whatsapp_e164: string; created_at: string; profile_id: string | null; vouched: Vouched | Vouched[] | null }[]).map((r) => ({
+  const items: RequestItem[] = ((rows.data ?? []) as unknown as { id: string; name: string; instagram: string; invited_by_instagram: string | null; whatsapp_e164: string; created_at: string; profile_id: string | null; vouched: Vouched | Vouched[] | null }[]).map((r) => ({
     id: r.id,
     name: r.name,
     instagram: r.instagram,
+    invitedBy: r.invited_by_instagram,
     whatsapp: pretty(r.whatsapp_e164),
     createdAt: r.created_at,
     joined: !!r.profile_id,

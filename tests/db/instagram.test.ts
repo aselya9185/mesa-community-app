@@ -125,3 +125,27 @@ describe('the old public column is gone', () => {
     expect((await svc.from('member_instagram').select('user_id').eq('user_id', temp.id)).data).toHaveLength(0);
   });
 });
+
+describe('privacy cannot be left behind', () => {
+  it('removing a member switches her handle back to private', async () => {
+    const temp = await makeUser({ name: 'leaver', instagramPublic: true });
+    const { error } = await (await signInAal2(boss)).rpc('admin_remove_member', { p_user: temp.id });
+    expect(error).toBeNull();
+    const { data } = await serviceClient().from('member_instagram').select('is_public').eq('user_id', temp.id).single();
+    expect(data?.is_public).toBe(false);
+  });
+
+  it('is private by default when a row is created without saying otherwise', async () => {
+    const temp = await makeUser({ name: 'plain' });
+    const svc = serviceClient();
+    await svc.from('member_instagram').delete().eq('user_id', temp.id);
+    await svc.from('member_instagram').insert({ user_id: temp.id, handle: '@plain' });
+    expect((await svc.from('member_instagram').select('is_public').eq('user_id', temp.id).single()).data?.is_public).toBe(false);
+  });
+
+  it.each(['   ', '@', '@ana maria', 'https://instagram.com/ana', '@@ana'])('refuses the handle %j', async (handle) => {
+    const me = await signIn(cora);
+    const { error } = await me.from('member_instagram').update({ handle }).eq('user_id', cora.id);
+    expect(error).not.toBeNull();
+  });
+});
