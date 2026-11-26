@@ -414,6 +414,22 @@ describe('the demo', () => {
       expect((await svc.from('plan_messages').select('event').eq('plan_id', ownPlan).eq('event', 'join')).data).toHaveLength(0);
     });
 
+    it('cannot read her number, by any account or filter', async () => {
+      for (const who of ['member', 'host', 'admin'] as const) {
+        const { client, userId } = await enter(who);
+        expect((await client.from('member_private').select('whatsapp_e164').eq('user_id', owner.id)).data, who).toHaveLength(0);
+        expect((await client.from('member_private').select('user_id').eq('whatsapp_e164', owner.phone)).data, who).toHaveLength(0);
+        expect(JSON.stringify((await client.from('member_private').select('*')).data), who).not.toContain(owner.phone);
+        // her own number stays readable
+        expect((await client.from('member_private').select('user_id').eq('user_id', userId)).data, who).toHaveLength(1);
+      }
+      // the demo admin still reads the fake numbers, and the real admin still reads everyone's
+      const { client } = await enter('admin');
+      expect((await client.from('member_private').select('user_id').eq('user_id', ids.get('host')!)).data).toHaveLength(1);
+      const mine = await signIn(owner);
+      expect((await mine.from('member_private').select('whatsapp_e164').eq('user_id', owner.id).single()).data?.whatsapp_e164).toBe(owner.phone);
+    });
+
     it('cannot read her private handle or her audit log', async () => {
       const { client } = await enter('admin');
       expect((await client.from('member_instagram').select('handle').eq('user_id', owner.id)).data).toHaveLength(0);

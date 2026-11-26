@@ -153,7 +153,7 @@ create policy demo_no_avatar_update on storage.objects as restrictive for update
 
 -- (flooding the feed is already limited for everyone by create_plan: too_many_plans)
 
--- 5. see or join a real account's plans, or read a real account's private handle or audit log
+-- 5. see or join a real account's plans, or read a real account's number, private handle or audit log
 create policy demo_plans_only on public.plans as restrictive for select to authenticated
   using (not public.is_demo_caller() or exists (select 1 from public.profiles p where p.id = plans.host_id and p.is_demo));
 
@@ -170,6 +170,10 @@ end $$;
 revoke all on function public.demo_stay_in_demo() from public, anon, authenticated;
 create trigger demo_stay_in_demo before insert or update of plan_id, user_id on public.plan_members
   for each row execute function public.demo_stay_in_demo();
+
+create policy demo_private_numbers on public.member_private as restrictive for select to authenticated
+  using (not public.is_demo_caller()
+         or exists (select 1 from public.profiles p where p.id = member_private.user_id and p.is_demo));
 
 create policy demo_private_handles on public.member_instagram as restrictive for select to authenticated
   using (is_public or not public.is_demo_caller()

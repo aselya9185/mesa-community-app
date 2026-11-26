@@ -61,7 +61,7 @@ Run it with `npm run test:e2e` (the demo suite is the second half: `playwright.d
 | switch the demo on where a real member or request exists | refused | `tests/db/demo.test.ts` |
 | only `DEMO_MODE=true`, database switch off | behaves like the club: no demo pages or bar, a request is stored | `e2e-demo` |
 | add a real admin while the demo is on | not a demo account; the demo admin cannot touch her | `tests/db/demo.test.ts` |
-| as a demo account, see or join a real account's plan, read her private handle or audit log; check what she is notified about | nothing, refused, no notifications | `tests/db/demo.test.ts` |
+| as a demo account, see or join a real account's plan, read her number, private handle or audit log; check what she is notified about | nothing, refused, no notifications | `tests/db/demo.test.ts` |
 | set a password, add an authenticator, store account data, then reset, or switch the demo off | all gone; old sessions dead; switched off, demo accounts read nothing | `tests/db/demo.test.ts` |
 | several visitors arrive as the same person at the same moment | nobody is signed out | `tests/db/demo.test.ts` |
 | decide every request, then enter as admin again | new fake requests are waiting | `tests/db/demo.test.ts` |
