@@ -42,6 +42,16 @@ describe('with the demo switched off (every normal database)', () => {
       expect((await c.from('demo_config').update({ enabled: true }).eq('id', 1)).error).not.toBeNull();
       expect((await c.rpc('demo_reset')).error).not.toBeNull();
       expect((await c.rpc('demo_cast')).error).not.toBeNull();
+      for (const [fn, args] of [
+        ['demo_lock', { p_key: 'admin', p_seconds: 60 }],
+        ['demo_unlock', { p_key: 'admin', p_token: '00000000-0000-4000-8000-000000000000' }],
+        ['demo_scrub_logins', { p_keep_factor: null }],
+        ['demo_top_up_requests', {}],
+      ] as const) {
+        // refused for lack of permission, not merely because the demo is off
+        expect((await c.rpc(fn, args)).error?.code, fn).toBe('42501');
+      }
+      expect((await c.from('demo_locks').select('*')).error).not.toBeNull();
     }
     // and nobody can mark herself as a demo person
     const me = await signIn(someone);
@@ -241,6 +251,8 @@ describe('the demo', () => {
       const { client, userId } = await enter(who);
       const password = `vandal-${randomBytes(6).toString('hex')}-1`;
       expect((await client.auth.updateUser({ password, data: { junk: 'x'.repeat(2000) } })).error).toBeNull();
+      // phone sign-in is off, so the public call may refuse: put the number there the way a looser setup would
+      expect((await svc.auth.admin.updateUserById(userId, { phone: `+34699${Math.floor(100000 + Math.random() * 899999)}`, phone_confirm: true })).error).toBeNull();
       const extra = await client.auth.mfa.enroll({ factorType: 'totp', friendlyName: `vandal ${Date.now()}` });
       expect(extra.error).toBeNull();
       const phone = (await svc.from('member_private').select('whatsapp_e164').eq('user_id', userId).single()).data!.whatsapp_e164 as string;
@@ -250,7 +262,9 @@ describe('the demo', () => {
       expect((await anonClient().auth.signInWithPassword({ email: p.email, password: p.password })).error, 'password').not.toBeNull();
       expect((await factorsOf(p.userId)).map((f) => f.id), 'authenticator').not.toContain(p.factorId);
       expect((await p.client.auth.getUser()).error, 'old session').not.toBeNull();
-      expect((await svc.auth.admin.getUserById(p.userId)).data.user?.user_metadata, 'metadata').not.toHaveProperty('junk');
+      const { data: after } = await svc.auth.admin.getUserById(p.userId);
+      expect(after.user?.user_metadata, 'metadata').not.toHaveProperty('junk');
+      expect(after.user?.phone ?? '', 'phone number').toBe('');
     };
 
     it('is all gone after a reset, and entry still works', async () => {
@@ -324,6 +338,59 @@ describe('the demo', () => {
     });
   });
 
+  it('never touches a real login: password, session and authenticator survive a reset and switching off', async () => {
+    const real = await makeUser({ name: 'realkeeper', role: 'admin' });
+    const session = await signIn(real);
+    const factor = await session.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'mine' });
+    expect(factor.error).toBeNull();
+    const intact = async (when: string) => {
+      expect((await session.auth.getUser()).error, `${when}: session`).toBeNull();
+      expect((await anonClient().auth.signInWithPassword({ email: loginEmail(real.phone), password: real.password })).error, `${when}: password`).toBeNull();
+      const list = (await svc.auth.admin.mfa.listFactors({ userId: real.id })).data?.factors ?? [];
+      expect(list.map((f) => f.id), `${when}: authenticator`).toContain(factor.data!.id);
+      expect(await profileOf(real.id), when).toMatchObject({ status: 'active', role: 'admin', is_demo: false });
+    };
+    expect((await svc.rpc('demo_reset')).error).toBeNull();
+    await intact('after a reset');
+    expect((await svc.from('demo_config').update({ enabled: false }).eq('id', 1)).error).toBeNull();
+    await intact('after switching off');
+    expect((await svc.from('demo_config').update({ enabled: true }).eq('id', 1)).error).toBeNull();
+    await ensureDemo(svc);
+    await intact('after switching on');
+    await svc.auth.admin.deleteUser(real.id);
+  });
+
+  it('keeps everyone signed in when the first visitors arrive together right after switching on', async () => {
+    expect((await svc.from('demo_config').update({ enabled: false }).eq('id', 1)).error).toBeNull();
+    expect((await svc.from('demo_config').update({ enabled: true }).eq('id', 1)).error).toBeNull();
+    const first = await Promise.all([enter('admin'), enter('member'), enter('host'), enter('admin'), enter('member'), enter('host')]);
+    for (const v of first) expect((await v.client.auth.getUser()).error).toBeNull();
+  });
+
+  it('a slow sign-in cannot free the place of the one that followed it', async () => {
+    const a = (await svc.rpc('demo_lock', { p_key: 'test', p_seconds: 0 })).data as string;
+    await new Promise((r) => setTimeout(r, 20));
+    const b = (await svc.rpc('demo_lock', { p_key: 'test', p_seconds: 60 })).data as string;
+    expect(a).toBeTruthy();
+    expect(b).toBeTruthy();
+    await svc.rpc('demo_unlock', { p_key: 'test', p_token: a }); // late
+    expect((await svc.rpc('demo_lock', { p_key: 'test', p_seconds: 60 })).data).toBeNull();
+    await svc.rpc('demo_unlock', { p_key: 'test', p_token: b });
+    const c = (await svc.rpc('demo_lock', { p_key: 'test', p_seconds: 1 })).data as string;
+    expect(c).toBeTruthy();
+    await svc.rpc('demo_unlock', { p_key: 'test', p_token: c });
+  });
+
+  it('never runs out of new requests, however many visitors approve them all', async () => {
+    for (let round = 0; round < 25; round++) {
+      await svc.from('applications').update({ status: 'approved', decided_at: new Date().toISOString() }).eq('status', 'pending').like('whatsapp_e164', '+346000000%');
+      expect((await svc.rpc('demo_top_up_requests')).error).toBeNull();
+      const { count } = await svc.from('applications').select('id', { count: 'exact', head: true }).eq('status', 'pending');
+      expect(count, `round ${round}`).toBeGreaterThanOrEqual(3);
+    }
+    expect((await svc.rpc('demo_reset')).error).toBeNull();
+  });
+
   describe('real accounts are out of reach of demo accounts', () => {
     let ownPlan: string;
     beforeAll(async () => {
@@ -352,6 +419,17 @@ describe('the demo', () => {
       expect((await client.from('member_instagram').select('handle').eq('user_id', owner.id)).data).toHaveLength(0);
       expect((await client.from('admin_events').select('id').eq('admin_id', owner.id)).data).toHaveLength(0);
       expect(((await client.from('member_instagram').select('handle')).data ?? []).length).toBeGreaterThan(0);
+    });
+
+    it('tells demo accounts nothing about her plans', async () => {
+      const mine = await signIn(owner);
+      const made = await mine.rpc('create_plan', plan('owner secret outing'));
+      expect(made.error).toBeNull();
+      const { data } = await svc.from('notifications').select('user_id').eq('plan_id', made.data as string);
+      const demo = (await svc.from('profiles').select('id').eq('is_demo', true)).data!.map((p) => p.id as string);
+      expect((data ?? []).filter((n) => demo.includes(n.user_id as string))).toHaveLength(0);
+      const { client } = await enter('member');
+      expect(JSON.stringify((await client.from('notifications').select('data')).data)).not.toContain('owner secret outing');
     });
 
     it('sends her no notifications about demo plans', async () => {

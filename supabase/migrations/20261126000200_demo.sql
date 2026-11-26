@@ -177,38 +177,50 @@ create policy demo_private_handles on public.member_instagram as restrictive for
 create policy demo_own_audit on public.admin_events as restrictive for select to authenticated
   using (not public.is_demo_caller() or exists (select 1 from public.profiles p where p.id = admin_events.admin_id and p.is_demo));
 
--- and real accounts are not pinged about what strangers do in the demo
-create function public.demo_quiet_real_accounts() returns trigger
+-- and no pings cross over, either way: real accounts hear nothing about what strangers do in the demo, and demo
+-- accounts hear nothing about a real account's plans
+create function public.demo_keep_pings_apart() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 begin
-  if new.plan_id is not null
-     and exists (select 1 from public.plans pl join public.profiles h on h.id = pl.host_id where pl.id = new.plan_id and h.is_demo)
-     and not exists (select 1 from public.profiles p where p.id = new.user_id and p.is_demo) then
+  if new.plan_id is not null and exists (
+    select 1 from public.plans pl
+      join public.profiles h on h.id = pl.host_id
+      join public.profiles p on p.id = new.user_id
+     where pl.id = new.plan_id and h.is_demo is distinct from p.is_demo
+  ) then
     return null;
   end if;
   return new;
 end $$;
-revoke all on function public.demo_quiet_real_accounts() from public, anon, authenticated;
-create trigger demo_quiet_real_accounts before insert on public.notifications
-  for each row execute function public.demo_quiet_real_accounts();
+revoke all on function public.demo_keep_pings_apart() from public, anon, authenticated;
+create trigger demo_keep_pings_apart before insert on public.notifications
+  for each row execute function public.demo_keep_pings_apart();
 
 ------------------------------------------------------------------ undoing what visitors did to the logins
+-- the accounts visitors can be signed in as: the cast, and members created while the demo ran. Never an admin from
+-- outside the cast, whatever else happened to her account.
+create function public.demo_account_ids() returns setof uuid
+language sql stable security definer set search_path = ''
+as $$ select id from public.profiles where is_demo and (demo_key is not null or role = 'member'); $$;
+revoke all on function public.demo_account_ids() from public, anon, authenticated;
+
 -- Visitors hold real sessions, so with the public key they can set a password, add an authenticator, change the login
 -- or store data on it. This takes all of that away from every demo account. p_keep_factor: the server's own.
 create function public.demo_scrub_logins(p_keep_factor uuid) returns void
 language plpgsql security definer set search_path = ''
 as $$
 begin
-  delete from auth.sessions where user_id in (select id from public.profiles where is_demo);
-  delete from auth.one_time_tokens where user_id in (select id from public.profiles where is_demo);
+  delete from auth.sessions where user_id in (select public.demo_account_ids());
+  delete from auth.one_time_tokens where user_id in (select public.demo_account_ids());
   delete from auth.mfa_factors
-   where user_id in (select id from public.profiles where is_demo) and id is distinct from p_keep_factor;
+   where user_id in (select public.demo_account_ids()) and id is distinct from p_keep_factor;
+  delete from auth.identities where provider = 'phone' and user_id in (select public.demo_account_ids());
   update auth.users
-     set encrypted_password = '', raw_user_meta_data = '{}'::jsonb,
+     set encrypted_password = '', raw_user_meta_data = '{}'::jsonb, phone = null, phone_confirmed_at = null,
          email_change = '', email_change_token_new = '', email_change_token_current = '', email_change_confirm_status = 0,
          phone_change = '', phone_change_token = '', recovery_token = '', confirmation_token = ''
-   where id in (select id from public.profiles where is_demo);
+   where id in (select public.demo_account_ids());
   -- the cast's logins, as written (in two steps, in case a visitor swapped them around)
   update auth.users u set email = u.id || '@demo.mesa.invalid'
     from public.profiles p where p.id = u.id and p.demo_key is not null;
@@ -226,10 +238,10 @@ as $$
 begin
   perform public.demo_scrub_logins(null);
   delete from public.demo_secrets where id = 1;
-  delete from public.invites where profile_id in (select id from public.profiles where is_demo)
-                                or created_by in (select id from public.profiles where is_demo);
+  delete from public.invites where profile_id in (select public.demo_account_ids())
+                                or created_by in (select public.demo_account_ids());
   delete from public.applications where public.demo_fake_phone(whatsapp_e164);
-  update public.profiles set status = 'removed' where is_demo and status <> 'removed';
+  update public.profiles set status = 'removed' where id in (select public.demo_account_ids()) and status <> 'removed';
   return null;
 end $$;
 revoke all on function public.demo_shut_down() from public, anon, authenticated;
@@ -238,26 +250,32 @@ create trigger demo_shut_down after update on public.demo_config
 
 ------------------------------------------------------------------ one sign-in per demo person at a time
 -- two visitors finishing the same sign-in at once makes the auth server drop sessions: they queue here instead
-create table public.demo_locks (key text primary key, held_until timestamptz not null);
+create table public.demo_locks (key text primary key, token uuid not null, held_until timestamptz not null);
 alter table public.demo_locks enable row level security;
 revoke all on public.demo_locks from public, anon, authenticated;
 
-create function public.demo_lock(p_key text, p_seconds integer) returns boolean
+-- take the place if it is free (or its holder ran out of time): returns the ticket to give it back with, else null
+create function public.demo_lock(p_key text, p_seconds integer) returns uuid
 language plpgsql security definer set search_path = ''
 as $$
+declare ticket uuid;
 begin
-  insert into public.demo_locks as l (key, held_until) values (p_key, clock_timestamp() + make_interval(secs => p_seconds))
-  on conflict (key) do update set held_until = excluded.held_until where l.held_until < clock_timestamp();
-  return found;
+  insert into public.demo_locks as l (key, token, held_until)
+  values (p_key, gen_random_uuid(), clock_timestamp() + make_interval(secs => p_seconds))
+  on conflict (key) do update set token = excluded.token, held_until = excluded.held_until
+    where l.held_until < clock_timestamp()
+  returning token into ticket;
+  return ticket;
 end $$;
 revoke all on function public.demo_lock(text, integer) from public, anon, authenticated;
 grant execute on function public.demo_lock(text, integer) to service_role;
 
-create function public.demo_unlock(p_key text) returns void
+-- only the holder of the ticket frees the place: a slow sign-in cannot free it for the one that followed
+create function public.demo_unlock(p_key text, p_token uuid) returns void
 language sql security definer set search_path = ''
-as $$ delete from public.demo_locks where key = p_key; $$;
-revoke all on function public.demo_unlock(text) from public, anon, authenticated;
-grant execute on function public.demo_unlock(text) to service_role;
+as $$ delete from public.demo_locks where key = p_key and token = p_token; $$;
+revoke all on function public.demo_unlock(text, uuid) from public, anon, authenticated;
+grant execute on function public.demo_unlock(text, uuid) to service_role;
 
 ------------------------------------------------------------------ the cast (single source of truth, all fake)
 create function public.demo_cast()
@@ -433,7 +451,12 @@ begin
   perform pg_advisory_xact_lock(hashtext('mesa-demo-reset'));
   if not public.demo_enabled() then raise exception 'demo_disabled' using errcode = '55000'; end if;
   if exists (select 1 from public.applications where status = 'pending' and public.demo_fake_phone(whatsapp_e164)) then return; end if;
-  delete from public.applications where status = 'rejected' and whatsapp_e164 ~ '^\+346000000[4-9][0-9]$';
+  -- the numbers 40-99 are for these: when they run short, drop decided ones that never became an account
+  if (select count(*) from generate_series(40, 99) g
+       where not exists (select 1 from public.applications a where a.whatsapp_e164 = '+346000000' || g)
+         and not exists (select 1 from public.member_private m where m.whatsapp_e164 = '+346000000' || g)) < 3 then
+    delete from public.applications where status <> 'pending' and profile_id is null and whatsapp_e164 ~ '^\+346000000[4-9][0-9]$';
+  end if;
   insert into public.applications (name, instagram, whatsapp_e164, status, created_at)
   select v.name, v.handle, n.phone, 'pending', now() - (v.pos || ' hours')::interval
     from (values (1, 'Lucía', '@lucia.demo'), (2, 'Emma', '@emma.demo'), (3, 'Sofía', '@sofia.demo')) v(pos, name, handle)

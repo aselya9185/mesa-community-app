@@ -5,7 +5,7 @@ import { demoTarget, isPersona } from '@/lib/demo';
 import { ipHash } from '@/lib/request';
 import { supabaseServer } from '@/lib/supabase/server';
 import { supabaseService } from '@/lib/supabase/service';
-import { demoEntryAllowed, enterDemo } from '@/server/demo';
+import { DemoBusy, demoEntryAllowed, enterDemo } from '@/server/demo';
 import { demoActive } from '@/server/demo-active';
 
 /** one click: become one of the fake demo people (or switch to another). Does nothing unless demo mode is on. */
@@ -29,7 +29,7 @@ export async function enterDemoAction(formData: FormData): Promise<void> {
     }
   } catch (e) {
     console.error('demo entry failed:', e instanceof Error ? e.message : 'unknown');
-    problem = 'failed';
+    problem = e instanceof DemoBusy ? 'busy' : 'failed';
   }
   if (problem) redirect(`/demo?problem=${problem}`);
   redirect(target);

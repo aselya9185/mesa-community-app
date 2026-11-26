@@ -11,7 +11,7 @@ export function DemoBar({ current }: { current: string | null }) {
   const pathname = usePathname();
   const query = useSearchParams().toString();
   return (
-    <aside className={styles.bar} aria-label="demo">
+    <aside className={styles.bar} aria-label="demo" data-demo-bar>
       <p className={styles.tag}>
         <strong>demo</strong>
         <span>fake data</span>

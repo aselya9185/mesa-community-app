@@ -11,6 +11,11 @@ html {
   background: var(--black);
 }
 
+/* the demo bar is fixed at the top: when the browser jumps to a field or a focused control, stop below it */
+html:has([data-demo-bar]) {
+  scroll-padding-top: 72px;
+}
+
 body {
   margin: 0;
   min-height: 100dvh;

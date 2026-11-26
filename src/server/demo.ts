@@ -13,6 +13,31 @@ type Cast = { key: string; name: string; phone: string; role: 'member' | 'admin'
 
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+const LOCK_SECONDS = 15; // longer than a sign-in or a setup takes; a crashed one frees itself
+const LOCK_WAIT_MS = 8_000; // give up while the host still lets the request answer
+
+/** too many visitors queuing at once: ask them to try again shortly */
+export class DemoBusy extends Error {}
+
+/** one at a time per key (a demo person, or the setup), across all server instances */
+async function inTurn<T>(svc: SupabaseClient, key: string, work: () => Promise<T>): Promise<T> {
+  const until = Date.now() + LOCK_WAIT_MS;
+  let ticket: string | null = null;
+  for (;;) {
+    const { data, error } = await svc.rpc('demo_lock', { p_key: key, p_seconds: LOCK_SECONDS });
+    if (error) throw new Error(`demo queue failed: ${error.message}`);
+    ticket = data as string | null;
+    if (ticket) break;
+    if (Date.now() > until) throw new DemoBusy('demo sign in is busy');
+    await pause(120 + Math.random() * 120);
+  }
+  try {
+    return await work();
+  } finally {
+    await svc.rpc('demo_unlock', { p_key: key, p_token: ticket });
+  }
+}
+
 /** the database switch: without it nothing here does anything, whatever the server setting says */
 export async function demoReady(svc: SupabaseClient): Promise<boolean> {
   const { data } = await svc.from('demo_config').select('enabled').eq('id', 1).maybeSingle();
@@ -63,24 +88,31 @@ export async function ensureDemo(svc: SupabaseClient): Promise<{ cast: Cast[]; i
   const { data, error } = await svc.rpc('demo_cast');
   if (error) throw new Error(`could not read the cast: ${error.message}`);
   const cast = data as Cast[];
-  let ids = await castIds(svc);
-  const missing = cast.filter((c) => !ids.has(c.key));
-  for (const c of missing) await createCastMember(svc, c);
-  if (missing.length) ids = await castIds(svc);
+  if (await needsSetup(svc, cast)) {
+    // a reset signs everyone in the demo out, so one visitor does it while the others wait, then look again
+    await inTurn(svc, 'setup', async () => {
+      if (!(await needsSetup(svc, cast))) return;
+      const ids = await castIds(svc);
+      for (const c of cast.filter((c) => !ids.has(c.key))) await createCastMember(svc, c);
+      const reset = await svc.rpc('demo_reset');
+      if (reset.error) throw new Error(`demo reset failed: ${reset.error.message}`);
+    });
+  }
+  return { cast, ids: await castIds(svc) };
+}
 
-  // refresh when new, after the demo was switched off, or when the sample plans have all passed (a missed nightly reset)
-  const shut = (await castProfiles(svc)).some((p) => p.status !== 'active');
-  const { count } = await svc
+/** new, switched off and on again, or all sample plans in the past (a missed nightly reset) */
+async function needsSetup(svc: SupabaseClient, cast: Cast[]): Promise<boolean> {
+  const people = await castProfiles(svc);
+  if (people.length < cast.length || people.some((p) => p.status !== 'active')) return true;
+  const { count, error } = await svc
     .from('plans')
     .select('id', { count: 'exact', head: true })
     .eq('status', 'active')
     .gt('starts_at', new Date().toISOString())
-    .in('host_id', [...ids.values()]);
-  if (missing.length || shut || !count) {
-    const reset = await svc.rpc('demo_reset');
-    if (reset.error) throw new Error(`demo reset failed: ${reset.error.message}`);
-  }
-  return { cast, ids };
+    .in('host_id', people.map((p) => p.id));
+  if (error) throw new Error(`could not read the demo plans: ${error.message}`);
+  return !count;
 }
 
 /** 'ok', 'refused' (the code was wrong: the saved secret no longer fits) or 'unavailable' (try again later) */
@@ -116,26 +148,6 @@ async function completeTwoStep(svc: SupabaseClient, client: SupabaseClient, user
   if ((await verifyCode(client, enrolled.data.id, enrolled.data.totp.secret)) !== 'ok') return false;
   const saved = await svc.from('demo_secrets').upsert({ id: 1, factor_id: enrolled.data.id, secret: enrolled.data.totp.secret });
   return !saved.error;
-}
-
-const LOCK_SECONDS = 15; // longer than a sign-in takes; a crashed one frees itself
-const LOCK_WAIT_MS = 20_000;
-
-/** one sign-in per demo person at a time, across all server instances */
-async function inTurn<T>(svc: SupabaseClient, key: string, work: () => Promise<T>): Promise<T> {
-  const until = Date.now() + LOCK_WAIT_MS;
-  for (;;) {
-    const { data, error } = await svc.rpc('demo_lock', { p_key: key, p_seconds: LOCK_SECONDS });
-    if (error) throw new Error(`demo queue failed: ${error.message}`);
-    if (data === true) break;
-    if (Date.now() > until) throw new Error('demo sign in is busy');
-    await pause(120 + Math.random() * 120);
-  }
-  try {
-    return await work();
-  } finally {
-    await svc.rpc('demo_unlock', { p_key: key });
-  }
 }
 
 /** sign the visitor in as a persona. Throws if it cannot. */

@@ -143,6 +143,22 @@ for (const width of [390, 1024, 1440]) {
   });
 }
 
+test('the demo bar never hides a field the page jumps to', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await enter(page, 'member 1');
+  await page.goto('/card/edit');
+  const name = page.getByLabel('your name');
+  const top = async () => (await name.boundingBox())!.y;
+  await name.fill('');
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await page.getByRole('button', { name: 'done' }).click(); // the browser jumps to the empty field
+  await expect.poll(top).toBeGreaterThanOrEqual(60);
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await name.evaluate((el) => (el as HTMLElement).blur());
+  await name.focus(); // what tabbing back to it does
+  await expect.poll(top).toBeGreaterThanOrEqual(60);
+});
+
 test('tabs and names are big enough to tap', async ({ page }) => {
   await enter(page, 'member 1');
   await page.getByText('zumba after work').first().click();
@@ -184,8 +200,11 @@ test('with only the server setting on, a real request is kept and nothing claims
   const off = await svc.from('demo_config').update({ enabled: false }).eq('id', 1);
   expect(off.error).toBeNull();
   try {
+    await page.goto('/');
+    await expect(page).toHaveURL(/\/apply$/); // as in the club
     await page.goto('/demo');
-    await expect(page).toHaveURL(/\/login$/);
+    await expect(page).toHaveURL(/\/apply$/);
+    await page.goto('/login');
     await expect(page.getByRole('link', { name: 'try the demo' })).toHaveCount(0);
     await page.goto('/apply');
     await expect(page.getByText('nothing you type in this form is saved in the demo.')).toHaveCount(0);

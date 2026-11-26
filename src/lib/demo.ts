@@ -18,7 +18,7 @@ export const PERSONAS = [
     label: 'member 2',
     who: 'anna',
     summary: 'host plans, give the free +1',
-    tries: 'open "zumba after work" and give marta the free +1 (or take it back). drop a plan of your own.',
+    tries: 'open "zumba after work" and give the free +1 to someone who has not booked. drop a plan of your own.',
   },
   {
     key: 'admin',
