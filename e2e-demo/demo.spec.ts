@@ -50,6 +50,7 @@ test('member 2 gives member 1 the free +1, switching without ever logging in', a
 test('chat and poll work for the people going', async ({ page }) => {
   await enter(page, 'member 1');
   await page.getByText('zumba after work').first().click();
+  await expect(page.getByRole('heading', { name: 'zumba after work' })).toBeVisible();
   const plan = new URL(page.url()).pathname;
   await page.goto(`${plan}?tab=chat`);
   await expect(page.getByText('it is! one sec')).toBeVisible();
@@ -108,6 +109,27 @@ test('cards, pings and leaving the demo', async ({ page }) => {
   await page.goto('/plans');
   await expect(page).toHaveURL(/\/login/);
   await expect(bar(page)).toHaveCount(0);
+});
+
+test('on a tablet the host can still read every name beside the buttons', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await enter(page, 'member 2');
+  await page.getByText('zumba after work').first().click();
+  await expect(page.getByRole('heading', { name: 'zumba after work' })).toBeVisible();
+  const going = page.getByRole('region', { name: /going/i });
+  for (const name of ['júlia', 'marta', 'carla']) {
+    const label = going.getByText(name, { exact: true });
+    await expect(label).toBeVisible();
+    expect(await label.evaluate((el) => el.scrollWidth - el.clientWidth), name).toBeLessThanOrEqual(0);
+  }
+  await noSidewaysScroll(page);
+});
+
+test('the push hand-off sends nothing in the demo, and still refuses strangers', async ({ request }) => {
+  const note = { notification_id: '00000000-0000-4000-8000-000000000000' };
+  expect((await request.post('/api/push', { data: note })).status()).toBe(401);
+  const mine = await request.post('/api/push', { data: note, headers: { 'x-push-secret': 'e2e-only-secret' } });
+  expect(await mine.json()).toEqual({ skipped: 'demo' });
 });
 
 test('two visitors can be the same person at once', async ({ page, browser, baseURL }) => {

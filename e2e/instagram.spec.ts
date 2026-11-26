@@ -65,3 +65,13 @@ test('a mistake in the form never publishes a handle she just switched off', asy
   const { data } = await serviceClient().from('member_instagram').select('is_public').eq('user_id', ana.id).single();
   expect(data?.is_public).toBe(false);
 });
+
+test('a bio with line breaks at the limit saves', async ({ page }) => {
+  const ana = await makeUser({ name: 'longbio' });
+  await login(page, ana, '/card/edit');
+  const bio = `${'a'.repeat(138)}\n${'b'.repeat(141)}`; // 280 characters with a line break
+  await page.getByRole('textbox', { name: /bio/ }).fill(bio);
+  await page.getByRole('button', { name: 'done' }).click();
+  await page.waitForURL((url) => !url.pathname.includes('/card/edit'));
+  expect((await serviceClient().from('profiles').select('bio').eq('id', ana.id).single()).data?.bio).toBe(bio);
+});

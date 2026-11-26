@@ -15,6 +15,15 @@ test.describe('visitors', () => {
     expect(apply.headers()['x-robots-tag']).toContain('noindex');
   });
 
+  test('get no demo way in where demo mode is off', async ({ page }) => {
+    await page.goto('/demo');
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.getByRole('link', { name: 'try the demo' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^(member 1|member 2|admin)/ })).toHaveCount(0);
+    await page.goto('/apply');
+    await expect(page.getByText('nothing you type in this form is saved in the demo.')).toHaveCount(0);
+  });
+
   test('can ask for an invite and the request reaches the door list', async ({ page }) => {
     const phone = `+3469${Math.floor(1_000_000 + Math.random() * 8_999_999)}`;
     await page.goto('/apply');

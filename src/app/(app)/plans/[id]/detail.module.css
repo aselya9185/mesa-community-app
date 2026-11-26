@@ -138,6 +138,11 @@
   gap: 8px;
 }
 
+/* rows with host buttons need more room, or the names get cut off */
+.people:has(button) {
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+}
+
 .person {
   min-height: 48px;
   display: flex;

@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { enter, freshDemo, viewAs } from './support';
 
 // README pictures, from fake data only:  SHOTS=1 npx playwright test -c playwright.demo.config.ts screenshots
@@ -15,6 +15,7 @@ test('screenshots', async ({ page }, info) => {
   await enter(page, 'member 1');
   await shot('plans');
   await page.getByText('zumba after work').first().click();
+  await expect(page.getByRole('heading', { name: 'zumba after work' })).toBeVisible();
   await shot('plan');
   const plan = new URL(page.url()).pathname;
   await page.goto(`${plan}?tab=chat`);

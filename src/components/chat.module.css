@@ -29,6 +29,8 @@
 }
 
 .status {
+  flex-shrink: 0;
+  max-width: 50%;
   font-size: 13px;
   font-weight: 700;
   color: var(--pink-soft);

@@ -43,13 +43,17 @@ as $$ select exists (select 1 from public.profiles p where p.id = auth.uid() and
 revoke all on function public.is_demo_caller() from public, anon;
 grant execute on function public.is_demo_caller() to authenticated, service_role;
 
--- never switch on where real members live
+-- never switch on where real members live, or where a real person's request waits: the demo admin reads the door list.
+-- (numbers starting +34600000 are the range reserved for the fake data below)
 create function public.demo_guard_enable() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 begin
   if new.enabled and exists (select 1 from public.profiles where role = 'member' and not is_demo) then
     raise exception 'real_members_present' using errcode = '55000';
+  end if;
+  if new.enabled and exists (select 1 from public.applications where whatsapp_e164 not like '+34600000%') then
+    raise exception 'real_requests_present' using errcode = '55000';
   end if;
   return new;
 end $$;
@@ -68,6 +72,20 @@ end $$;
 revoke all on function public.demo_mark_new_profile() from public, anon, authenticated;
 create trigger demo_mark_new_profile before insert on public.profiles
   for each row execute function public.demo_mark_new_profile();
+
+-- and while it runs, a real person's request is never stored, whatever the app does
+create function public.demo_no_real_requests() returns trigger
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  if public.demo_enabled() and new.whatsapp_e164 not like '+34600000%' then
+    raise exception 'demo_no_requests' using errcode = '55000';
+  end if;
+  return new;
+end $$;
+revoke all on function public.demo_no_real_requests() from public, anon, authenticated;
+create trigger demo_no_real_requests before insert or update of whatsapp_e164 on public.applications
+  for each row execute function public.demo_no_real_requests();
 
 ------------------------------------------------------------------ what a demo account can never do
 -- 1. make a password-reset link for anyone but a throwaway demo account (so the demo admin can never take over the
@@ -126,20 +144,7 @@ create policy demo_no_avatar_update on storage.objects as restrictive for update
   using (bucket_id <> 'avatars' or not public.is_demo_caller())
   with check (bucket_id <> 'avatars' or not public.is_demo_caller());
 
--- 5. flood the feed
-create function public.demo_limit_plans() returns trigger
-language plpgsql security definer set search_path = ''
-as $$
-begin
-  if public.is_demo_caller()
-     and (select count(*) from public.plans where host_id = new.host_id and created_at > now() - interval '1 hour') >= 15 then
-    raise exception 'too_fast' using errcode = '54000';
-  end if;
-  return new;
-end $$;
-revoke all on function public.demo_limit_plans() from public, anon, authenticated;
-create trigger demo_limit_plans before insert on public.plans
-  for each row execute function public.demo_limit_plans();
+-- (flooding the feed is already limited for everyone by create_plan: too_many_plans)
 
 ------------------------------------------------------------------ the cast (single source of truth, all fake)
 create function public.demo_cast()
@@ -244,20 +249,20 @@ begin
   perform public.demo_say(zumba, 'member', interval '3 hours',  'i have not booked yet… is the pass still free?');
   perform public.demo_say(zumba, 'host',   interval '2 hours',  'it is! one sec');
 
-  run := public.demo_plan('carla', 2, '10:00', 'sunday run + pastries', 'Parc de la Ciutadella', null, false, array['member','julia','ona']);
+  run := public.demo_plan('carla', 2, '10:00', 'park run + pastries', 'Parc de la Ciutadella', null, false, array['member','julia','ona']);
   perform public.demo_say(run, 'carla',  interval '20 hours', 'easy 5k, nobody gets left behind');
   perform public.demo_say(run, 'ona',    interval '4 hours',  'which gate do we meet at?');
   perform public.demo_say(run, 'carla',  interval '1 hour',   'the one by the arc');
 
-  market := public.demo_plan('nuria', 3, '12:00', 'christmas market + matcha', 'Fira de Santa Llúcia', null, false, array['host']);
+  market := public.demo_plan('nuria', 3, '12:00', 'market stroll + matcha', 'Mercat de Sant Antoni', null, false, array['host']);
   perform public.demo_say(market, 'nuria', interval '30 hours', 'come hungry');
 
   -- the +1 already went to júlia
-  pilates := public.demo_plan('host', 5, '09:30', 'saturday pilates', 'Studio Gràcia', 'https://example.com/book', true, array['julia','nuria']);
+  pilates := public.demo_plan('host', 5, '09:30', 'morning pilates', 'Studio Gràcia', 'https://example.com/book', true, array['julia','nuria']);
   update public.plan_bookings set state = 'booked' where plan_id = pilates and user_id in (select id from public.profiles where demo_key in ('host','nuria'));
   update public.plan_bookings set state = 'covered' where plan_id = pilates and user_id = (select id from public.profiles where demo_key = 'julia');
   insert into public.plus_one_grants (plan_id, user_id) select pilates, id from public.profiles where demo_key = 'julia';
-  perform public.demo_say(pilates, 'host', interval '8 hours', 'see you saturday ✨');
+  perform public.demo_say(pilates, 'host', interval '8 hours', 'see you there ✨');
 
   gone := public.demo_plan('carla', 4, '18:00', 'beach volleyball', 'Bogatell', null, false, array['member','ona']);
   perform public.demo_say(gone, 'carla', interval '6 hours', 'forecast says rain, cancelling. next week!');

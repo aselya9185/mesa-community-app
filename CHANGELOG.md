@@ -5,7 +5,7 @@ All notable changes. Format based on [Keep a Changelog](https://keepachangelog.c
 ## [Unreleased]
 
 ### Added
-- Demo mode: try the app in one click as member 1, member 2 (host) or the admin, switch at any time from a bar at the top, with fake people and plans that start fresh every night. Photos, pings and real WhatsApp messages are off, the request form saves nothing, and demo accounts cannot touch real ones (enforced in the database).
+- Demo mode: try the app in one click as member 1, member 2 (host) or the admin, switch at any time from a bar at the top, with fake people and plans that start fresh every night. Photos, pings and real WhatsApp messages are off, the request form saves nothing, a demo database never holds real members or real requests, and demo accounts cannot touch real ones (enforced in the database).
 - Project skills for AI-assisted work in `.claude/skills/`.
 
 ### Security

@@ -75,7 +75,8 @@ export function CardForm({ me, photoUrl = null, next = '/plans', heading = 'make
         <label htmlFor="bio" className={styles.label}>
           bio <span className={styles.optional}>(optional)</span>
         </label>
-        <textarea id="bio" name="bio" rows={3} className={styles.textarea} defaultValue={v.bio} maxLength={280} />
+        <textarea id="bio" name="bio" rows={3} className={styles.textarea} defaultValue={v.bio} maxLength={280} aria-invalid={!!errors?.bio} />
+        {errors?.bio && <span className={styles.error}>{errors.bio}</span>}
       </div>
       </div>
       <button type="submit" className={styles.primary} disabled={pending}>

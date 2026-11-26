@@ -62,6 +62,26 @@ describe('the demo', () => {
     await cleanup();
   }, 120_000);
 
+  // the demo admin reads the door list, so a real person's request must never sit in a demo database
+  it('refuses to switch on while a real invite request is waiting', async () => {
+    await svc.from('demo_config').update({ enabled: false }).eq('id', 1);
+    const added = await svc.from('applications').insert({ name: 'Real', instagram: '@real', whatsapp_e164: '+34699888777' });
+    expect(added.error).toBeNull();
+    const { error } = await svc.from('demo_config').update({ enabled: true }).eq('id', 1);
+    await svc.from('applications').delete().eq('whatsapp_e164', '+34699888777');
+    expect(error?.message).toContain('real_requests_present');
+    expect((await svc.from('demo_config').update({ enabled: true }).eq('id', 1)).error).toBeNull();
+  });
+
+  it('never stores a request with a real number while it runs, not even from the server', async () => {
+    const real = await svc.from('applications').insert({ name: 'Real', instagram: '@real', whatsapp_e164: '+34699888777' });
+    expect(real.error?.message).toContain('demo_no_requests');
+    const { data: fake } = await svc.from('applications').select('id').like('whatsapp_e164', '+34600000%').limit(1).single();
+    const rewritten = await svc.from('applications').update({ whatsapp_e164: '+34699888777' }).eq('id', fake!.id);
+    expect(rewritten.error?.message).toContain('demo_no_requests');
+    expect((await svc.from('applications').select('id').eq('whatsapp_e164', '+34699888777')).data).toHaveLength(0);
+  });
+
   it('creates the fake cast with fake numbers, and plans to look at', async () => {
     expect([...ids.keys()].sort()).toEqual(['admin', 'carla', 'host', 'julia', 'member', 'nuria', 'ona']);
     const { data: numbers } = await svc.from('member_private').select('whatsapp_e164').in('user_id', [...ids.values()]);
@@ -168,9 +188,10 @@ describe('the demo', () => {
     it('cannot flood the feed', async () => {
       const { client } = await enter('host');
       let refused = 0;
-      for (let i = 0; i < 18; i++) {
-        const r = await client.rpc('create_plan', { p_title: `flood ${i}`, p_starts_at: new Date(Date.now() + 86_400_000).toISOString(), p_place: 'x', p_maps_url: null, p_booking_url: null, p_plus_one: false });
-        if (r.error?.message === 'too_fast') refused++;
+      for (let i = 0; i < 25 && !refused; i++) {
+        const r = await client.rpc('create_plan', { p_title: `flood ${i}`, p_starts_at: new Date(Date.now() + 86_400_000).toISOString(), p_place_name: 'x', p_maps_url: null, p_booking_url: null, p_free_plus_one: false });
+        if (r.error?.message === 'too_many_plans') refused++;
+        else expect(r.error).toBeNull();
       }
       expect(refused).toBeGreaterThan(0);
     });
@@ -179,15 +200,14 @@ describe('the demo', () => {
   describe('the nightly reset', () => {
     it('removes what visitors did and restores the cast, without touching the owner', async () => {
       const mine = await signIn(owner);
-      const ownPlan = await mine.rpc('create_plan', { p_title: 'owner plan', p_starts_at: new Date(Date.now() + 86_400_000).toISOString(), p_place: 'home', p_maps_url: null, p_booking_url: null, p_plus_one: false });
+      const ownPlan = await mine.rpc('create_plan', { p_title: 'owner plan', p_starts_at: new Date(Date.now() + 86_400_000).toISOString(), p_place_name: 'home', p_maps_url: null, p_booking_url: null, p_free_plus_one: false });
       expect(ownPlan.error).toBeNull();
 
       const { client, userId } = await enter('member');
       await client.from('profiles').update({ name: 'rude name' }).eq('id', userId);
-      await client.rpc('create_plan', { p_title: 'junk plan', p_starts_at: new Date(Date.now() + 86_400_000).toISOString(), p_place: 'x', p_maps_url: null, p_booking_url: null, p_plus_one: false });
+      await client.rpc('create_plan', { p_title: 'junk plan', p_starts_at: new Date(Date.now() + 86_400_000).toISOString(), p_place_name: 'x', p_maps_url: null, p_booking_url: null, p_free_plus_one: false });
       await client.from('plan_messages').insert({ plan_id: ownPlan.data as string, sender_id: userId, kind: 'user', body: 'junk' });
       const visitor = await makeUser({ name: 'visitoraccount' });
-      await svc.from('applications').insert({ name: 'Real', instagram: '@real', whatsapp_e164: '+34699888777' });
 
       expect((await svc.rpc('demo_reset')).error).toBeNull();
       expect((await svc.rpc('demo_reset')).error).toBeNull(); // twice is fine
@@ -196,12 +216,10 @@ describe('the demo', () => {
       expect((await svc.from('plans').select('id').eq('title', 'junk plan')).data).toHaveLength(0);
       expect((await svc.from('plan_messages').select('id').eq('body', 'junk')).data).toHaveLength(0);
       expect(await profileOf(visitor.id)).toBeNull();
-      // the owner, her plan and anything outside the fake number range survive
+      // the owner and her plan survive
       expect(await profileOf(owner.id)).toMatchObject({ name: 'owner', role: 'admin', status: 'active', is_demo: false });
       expect((await svc.from('member_private').select('whatsapp_e164').eq('user_id', owner.id).single()).data?.whatsapp_e164).toBe(owner.phone);
       expect((await svc.from('plans').select('id').eq('title', 'owner plan')).data).toHaveLength(1);
-      expect((await svc.from('applications').select('id').eq('whatsapp_e164', '+34699888777')).data).toHaveLength(1);
-      await svc.from('applications').delete().eq('whatsapp_e164', '+34699888777');
     });
 
     it('refuses to run if a real member has appeared', async () => {

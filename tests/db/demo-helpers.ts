@@ -3,13 +3,17 @@ import { serviceClient } from './helpers';
 
 /**
  * The demo refuses to switch on where real members exist (that is the point), and local test data counts as real. So the
- * leftovers are marked as demo for the duration, and unmarked again by demoOff().
+ * leftovers are marked as demo for the duration, and unmarked again by the returned function. Old test requests are
+ * deleted. stack() only ever talks to the local database.
  */
 export async function demoOn(): Promise<() => Promise<void>> {
   const svc = serviceClient();
   const { data: others } = await svc.from('profiles').select('id').eq('role', 'member').eq('is_demo', false);
   const ids = (others ?? []).map((p) => p.id as string);
   for (let i = 0; i < ids.length; i += 100) await svc.from('profiles').update({ is_demo: true }).in('id', ids.slice(i, i + 100));
+  // the demo also refuses to start while a request with a real-looking number is stored: those here are test leftovers
+  const cleared = await svc.from('applications').delete().not('whatsapp_e164', 'like', '+34600000%');
+  if (cleared.error) throw new Error(`could not clear old test requests: ${cleared.error.message}`);
   const on = await svc.from('demo_config').update({ enabled: true }).eq('id', 1);
   if (on.error) throw new Error(`could not switch the demo on: ${on.error.message}`);
   return async () => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { newLinkAction, removeMemberAction, type InviteOut } from '@/app/(app)/admin/actions';
 import { Avatar } from './Avatar';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -16,6 +16,11 @@ export function MembersClient({ members }: { members: MemberItem[] }) {
   const [panel, setPanel] = useState<Ok | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const errorRef = useRef<HTMLParagraphElement>(null);
+  // the message sits at the top of the list: bring it into view when the button pressed was far down
+  useEffect(() => {
+    if (error) errorRef.current?.scrollIntoView({ block: 'center' });
+  }, [error]);
 
   function newLink(id: string) {
     setError(null);
@@ -34,7 +39,7 @@ export function MembersClient({ members }: { members: MemberItem[] }) {
     <>
       <h2 className={styles.heading}>the club · {members.length}</h2>
       {error && (
-        <p role="alert" className={styles.error}>
+        <p ref={errorRef} role="alert" className={styles.error}>
           {error}
         </p>
       )}
