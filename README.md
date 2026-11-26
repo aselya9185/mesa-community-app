@@ -2,6 +2,24 @@
 
 A private community web app for organising group outings in Barcelona: classes, runs, walks, matcha, anything. Members join by invitation, post plans, join each other's plans and chat. It installs to a phone's home screen like an app.
 
+## Live demo
+
+**[Try it: mesabcn.com/demo](https://mesabcn.com/demo)**: one click, no sign-up. All people and plans are made up and start fresh every night.
+
+| be | what to try |
+|---|---|
+| **member 1** | read the chat on "zumba after work", vote for plans after, join another plan |
+| **member 2** | host: give member 1 the free +1, drop, edit or cancel a plan |
+| **admin** | approve a request, open the one-time link and join as her, look at members and reports |
+
+Switch between them at any time with the bar at the top.
+
+| | | |
+|---|---|---|
+| ![plans on a phone](docs/screenshots/phone-plans.png) | ![a plan on a phone](docs/screenshots/phone-host.png) | ![chat on a phone](docs/screenshots/phone-chat.png) |
+
+![the admin door list on desktop](docs/screenshots/desktop-door.png)
+
 ## Features
 
 - **Membership:** request an invite, approval by an admin, personal one-time invite links, login with WhatsApp number and password.
@@ -13,6 +31,23 @@ A private community web app for organising group outings in Barcelona: classes, 
 - **Notifications:** in-app inbox and web push.
 - **Admin:** a door list for requests, members and reports, protected by two-step sign-in.
 - **Profiles:** a member card with photo, area, where she trains, what she likes and a short bio.
+
+## How it fits together
+
+```mermaid
+flowchart LR
+  B[Browser / installed app] -->|pages, server actions| N[Next.js]
+  B <-->|live chat| R[Supabase Realtime]
+  N -->|as the signed-in member| D[(Postgres with row level security)]
+  N -->|few server-only tasks| D
+  N --> A[Supabase Auth]
+  N --> S[Private photo storage]
+  D -->|new notification| N
+  N -->|web push| B
+  R --> D
+```
+
+The database is the security boundary: every table has row level security, writes go through checked functions, and the rules are tested as each kind of caller. The interface only reflects what the database already allows.
 
 ## Tech stack
 
@@ -51,6 +86,7 @@ Copy `.env.example` to `.env.local`. Never commit real values.
 | `VAPID_PRIVATE_KEY` | web push private key (server only) |
 | `VAPID_SUBJECT` | contact address sent with push requests |
 | `PUSH_WEBHOOK_SECRET` | shared secret for the push endpoint (server only) |
+| `DEMO_MODE` | `true` turns on the public demo (also needs `demo_config.enabled` in the database) |
 
 ## Scripts
 
@@ -77,6 +113,8 @@ src/lib/             shared helpers
 src/server/          server-side logic (apply, join, login limits, push)
 supabase/migrations/ database schema, policies, functions and triggers
 tests/               unit tests; tests/db holds the integration and security tests
+e2e/, e2e-demo/      browser tests for the app and for the demo
+.claude/             project skills and the tester agent
 scripts/             development and maintenance scripts
 ```
 
@@ -85,10 +123,21 @@ scripts/             development and maintenance scripts
 ```bash
 npm run check      # lint, type-check, unit tests
 npm run test:db    # runs against the local Supabase
-npm run test:e2e   # real browser tests, desktop and phone sizes (first time: npx playwright install chromium)
+npm run test:e2e   # real browser tests (app and demo), desktop and phone sizes (first time: npx playwright install chromium)
 ```
 
 The database tests cover access rules for visitors, pending applicants, removed members, members and the admin (with and without two-step sign-in), invite links, chat, the +1, notifications, photos and the admin actions.
+
+## How this is built
+
+The app is developed with an AI coding assistant, inside guardrails that do not depend on trusting it:
+
+- **Written rules** the assistant reads (`CLAUDE.md`), and task playbooks in `.claude/skills/` (database changes, access-rule tests, privacy review, browser tests, shipping).
+- **Tests first for security:** a failing test for the visitor, removed member, other member and admin cases, then the change.
+- **An independent tester agent** (`.claude/agents/qa-tester.md`) that gets only the "done when" list, hunts for regressions and privacy leaks, and reports evidence or "not verified".
+- **Protected `main`:** pull requests only, with lint, types, unit, database, browser, build, audit and migration-history checks required.
+
+Examples of what this caught before release: a removed member's hidden handle becoming public on rejoin, a form error silently re-ticking a privacy switch, a card that failed to save although the database tests passed, and a live update that could be dropped.
 
 ## Privacy
 

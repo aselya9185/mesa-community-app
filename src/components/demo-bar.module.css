@@ -1,0 +1,98 @@
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  height: var(--demo-h, 60px);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 12px;
+  background: var(--black);
+  border-bottom: 1px dashed var(--pink);
+}
+
+.tag {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.tag strong {
+  font-size: 14px;
+  color: var(--pink-soft);
+}
+
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.label {
+  display: none;
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.options {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.option {
+  min-height: var(--touch);
+  padding: 0 12px;
+  border: 0;
+  border-radius: 22px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.option[aria-current='true'] {
+  background: var(--pink);
+  color: var(--black);
+}
+
+.option[aria-busy='true'] {
+  color: var(--text);
+  outline: 2px solid var(--pink-soft);
+}
+
+.option:disabled {
+  cursor: progress;
+}
+
+@media (min-width: 500px) {
+  .bar {
+    padding: 0 20px;
+  }
+  .tag {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 13px;
+  }
+  .label {
+    display: inline;
+  }
+  .option {
+    padding: 0 18px;
+  }
+}

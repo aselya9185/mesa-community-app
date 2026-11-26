@@ -31,7 +31,7 @@ export function CardForm({ me, photoUrl = null, next = '/plans', heading = 'make
       <h1 className={styles.title}>{heading}</h1>
       <p className={styles.sub}>this is how members see you. your whatsapp number never shows here.</p>
 
-      <PhotoField userId={me.id} name={me.name} currentUrl={photoUrl} />
+      <PhotoField userId={me.id} name={me.name} currentUrl={photoUrl} off={me.is_demo} />
 
       {/* a new key after each failed save: the browser resets a submitted form, so the fields are rebuilt from `v`.
           Without this her "show my instagram" choice would silently tick itself again. */}

@@ -29,7 +29,7 @@ node scripts/set-push-config.mjs <url>        # where the database sends push ha
 
 - **Zero running cost for v1.** No paid APIs, SMS or plans. Ask before adding any paid service or any dependency not already approved: `@supabase/supabase-js`, `@supabase/ssr`, `web-push`, `zod`, `libphonenumber-js`, `vitest` (+ the Supabase CLI as a dev dependency). Playwright is approved as a dev dependency for end-to-end tests only. No Tailwind, PWA plugin or Turnstile.
 - **Notifications:** web push + in-app only. No WhatsApp/Instagram API.
-- **Privacy first.** RLS on every table. A logged-out, pending or removed user reads nothing. Members never see each other's WhatsApp numbers (only the admin does). Instagram handles live in `member_instagram` and are private unless the member opts in (`is_public`); the admin and the owner always see them. `noindex` + `robots.txt` disallow-all. No secrets in the repo (`.env.example` only). The service-role key is server-only and used only for: the apply form (+ its rate limits), token redeem + account creation, the login rate limiter, admin auth actions (banning a removed member), web push. A test fails if client code imports it.
+- **Privacy first.** RLS on every table. A logged-out, pending or removed user reads nothing. Members never see each other's WhatsApp numbers (only the admin does). Instagram handles live in `member_instagram` and are private unless the member opts in (`is_public`); the admin and the owner always see them. `noindex` + `robots.txt` disallow-all. No secrets in the repo (`.env.example` only). The service-role key is server-only and used only for: the apply form (+ its rate limits), token redeem + account creation, the login rate limiter, admin auth actions (banning a removed member), web push, and the demo's one-click entry (`src/server/demo.ts`, only when demo mode is on). A test fails if client code imports it.
 - **Auth:** Supabase Auth only (no hand-rolled hashing). Login = WhatsApp number + password. Users are created only via the admin API; public sign-up is disabled. Admin uses MFA (TOTP); `is_admin()` requires AAL2.
 - **Invites:** one-time token, >=32 random chars, only its SHA-256 hash is stored, 7 days, single use (atomic `UPDATE … WHERE used_at IS NULL AND expires_at > now()`). Reset link: 24 h. Reject never notifies.
 - **Plans:** a plan is any outing. No spots/capacity, no filters; the feed is the next 7 days. The +1 is assigned only by the host, only to a joined member who has not booked; others never see who got it. Booked badges stay visible (decided).
@@ -52,3 +52,11 @@ node scripts/set-push-config.mjs <url>        # where the database sends push ha
 - Fixing review comments: reproduce with a failing test when it is a bug, fix on the same branch, push a new commit, and say which comment it answers. Do not force-push over reviewed commits.
 - Never edit a migration that has been applied; add a new one. Never touch secrets, `.env*` or the production database from a review fix.
 - AI review and fix automation costs money to run: do not enable or change those workflows without the owner's go-ahead.
+
+## Demo mode
+
+- `DEMO_MODE=true` (server) plus `demo_config.enabled` (database) turn the app into a public demo with fake people. Off everywhere else. See the `demo-mode` skill.
+- A database with the demo on holds no real members. A real launch uses its own database.
+- Demo accounts must never be able to change a real account, store what a stranger types about real people, upload files or send pings. Enforce it in the database and test it.
+- Skills in `.claude/skills/` describe how to do common work here; the `qa-tester` agent checks changes before merge.
+

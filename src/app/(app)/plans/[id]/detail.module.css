@@ -323,7 +323,7 @@
 }
 
 .chatCol {
-  height: calc(100dvh - 176px);
+  height: calc(100dvh - var(--demo-h, 0px) - 176px);
   min-height: 420px;
   margin: 12px 12px 0;
 }
@@ -343,7 +343,7 @@
 /* phone, chat tab: the page is exactly one screen (the bar's room is added by the shell), so only the messages scroll */
 @media (max-width: 767px) {
   .wrap[data-tab='chat'] {
-    height: calc(100dvh - 104px);
+    height: calc(100dvh - var(--demo-h, 0px) - 104px);
     overflow: hidden;
   }
   .wrap[data-tab='chat'] .tabs {
@@ -362,7 +362,7 @@
     margin: 12px 20px 0;
   }
   .chatCol {
-    height: calc(100dvh - 92px);
+    height: calc(100dvh - var(--demo-h, 0px) - 92px);
     margin: 12px 12px 12px;
   }
 }
@@ -370,7 +370,7 @@
 @media (min-width: 1200px) {
   .wrap {
     flex-direction: row;
-    height: 100dvh;
+    height: calc(100dvh - var(--demo-h, 0px));
   }
   .tabs {
     display: none;
@@ -378,7 +378,7 @@
   .detailCol {
     flex: 0 0 480px;
     overflow-y: auto;
-    height: 100dvh;
+    height: calc(100dvh - var(--demo-h, 0px));
   }
   .wrap[data-tab='chat'] .detailCol,
   .wrap[data-tab='plan'] .detailCol {
@@ -390,7 +390,7 @@
     display: block;
     flex: 1;
     min-width: 0;
-    height: calc(100dvh - 32px);
+    height: calc(100dvh - var(--demo-h, 0px) - 32px);
     margin: 16px 16px 16px 4px;
   }
 }

@@ -2,6 +2,11 @@
   min-height: 100dvh;
 }
 
+/* the demo bar sits above the page: full-height layouts subtract it (var(--demo-h)) so nothing scrolls twice */
+.demo {
+  --demo-h: 60px;
+}
+
 .content {
   /* room for the floating bar on phones */
   padding-bottom: 104px;
@@ -11,6 +16,7 @@
   .content {
     padding: 0 0 0 100px;
     height: 100dvh;
+    overflow-x: clip;
   }
 }
 

@@ -22,7 +22,7 @@ async function toAvatar(file: File): Promise<Blob> {
   return blob;
 }
 
-export function PhotoField({ userId, name, currentUrl }: { userId: string; name: string; currentUrl: string | null }) {
+export function PhotoField({ userId, name, currentUrl, off = false }: { userId: string; name: string; currentUrl: string | null; off?: boolean }) {
   const input = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(currentUrl);
   const [path, setPath] = useState<string | null>(null); // a new upload, saved with the card
@@ -52,6 +52,15 @@ export function PhotoField({ userId, name, currentUrl }: { userId: string; name:
       setBusy(false);
       if (input.current) input.current.value = '';
     }
+  }
+
+  if (off) {
+    return (
+      <div className={styles.field}>
+        <Avatar id={userId} name={name || '?'} size={72} src={null} />
+        <span className={styles.hint}>photos are switched off in the demo.</span>
+      </div>
+    );
   }
 
   return (

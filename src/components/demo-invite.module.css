@@ -1,0 +1,31 @@
+.box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 1px dashed var(--pink);
+  border-radius: 20px;
+}
+
+.text {
+  margin: 0;
+  flex: 1;
+  min-width: 160px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch);
+  padding: 0 18px;
+  border-radius: 22px;
+  background: var(--pink);
+  color: var(--black);
+  font-weight: 700;
+  font-size: 14px;
+}

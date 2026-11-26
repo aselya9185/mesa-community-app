@@ -7,7 +7,7 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { InvitePanel } from './InvitePanel';
 import styles from './members-admin.module.css';
 
-export type MemberItem = { id: string; name: string; isAdmin: boolean; isMe: boolean; joinedAt: string };
+export type MemberItem = { id: string; name: string; isAdmin: boolean; isMe: boolean; joinedAt: string; protected: boolean };
 type Ok = Extract<InviteOut, { ok: true }>;
 
 const joined = (iso: string) => new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'Europe/Madrid' }).format(new Date(iso)).toLowerCase();
@@ -27,7 +27,7 @@ export function MembersClient({ members }: { members: MemberItem[] }) {
   }
 
   if (panel) {
-    return <InvitePanel who={panel.who} message={panel.message} waUrl={panel.waUrl} heading="new link for {who}" intro="one-time link, expires in 24 hours. she sets a new password with it." onBack={() => setPanel(null)} backLabel="back to members" />;
+    return <InvitePanel who={panel.who} message={panel.message} waUrl={panel.waUrl} link={panel.link} heading="new link for {who}" intro="one-time link, expires in 24 hours. she sets a new password with it." onBack={() => setPanel(null)} backLabel="back to members" />;
   }
 
   return (
@@ -49,12 +49,13 @@ export function MembersClient({ members }: { members: MemberItem[] }) {
               </strong>
               <span className={styles.muted}>{m.isAdmin ? 'admin' : `joined ${joined(m.joinedAt)}`}</span>
             </div>
-            {!m.isMe && (
+            {!m.isMe && m.protected && <span className={styles.muted}>protected</span>}
+            {!m.isMe && !m.protected && (
               <button type="button" className={styles.outline} disabled={pending} onClick={() => newLink(m.id)}>
                 new link
               </button>
             )}
-            {!m.isMe && !m.isAdmin && (
+            {!m.isMe && !m.isAdmin && !m.protected && (
               <ConfirmDialog
                 trigger={
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

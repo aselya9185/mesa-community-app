@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { AuthShell } from '@/components/AuthShell';
+import { DemoInvite } from '@/components/DemoInvite';
 import { safeNext } from '@/lib/time';
 import { LoginForm } from './LoginForm';
 
@@ -9,6 +10,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const { next } = await searchParams;
   return (
     <AuthShell>
+      <DemoInvite />
       <LoginForm next={safeNext(next)} />
     </AuthShell>
   );

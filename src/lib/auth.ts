@@ -17,6 +17,10 @@ export type Me = {
   member_code: string;
   photo_path: string | null;
   role: 'member' | 'admin';
+  /** a pretend account that only exists for the demo */
+  is_demo: boolean;
+  /** which demo person this is ('member', 'host', 'admin', ...), if any */
+  demo_key: string | null;
 };
 
 /**
@@ -30,7 +34,7 @@ export const requireMember = cache(async (): Promise<Me> => {
   const [{ data: me }, { data: ig }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, name, area, bio, likes, trains_at, member_no, member_code, photo_path, role')
+      .select('id, name, area, bio, likes, trains_at, member_no, member_code, photo_path, role, is_demo, demo_key')
       .eq('id', auth.user.id)
       .maybeSingle(),
     supabase.from('member_instagram').select('handle, is_public').eq('user_id', auth.user.id).maybeSingle(),

@@ -1,7 +1,10 @@
+import { Suspense } from 'react';
 import { AppNav } from '@/components/AppNav';
+import { DemoBar } from '@/components/DemoBar';
 import { NotificationsProvider } from '@/components/NotificationsProvider';
 import { ServiceWorker } from '@/components/ServiceWorker';
 import { requireMember } from '@/lib/auth';
+import { demoMode } from '@/lib/demo';
 import { supabaseServer } from '@/lib/supabase/server';
 import styles from './shell.module.css';
 
@@ -23,9 +26,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <a href="#content" className={styles.skip}>
         skip to content
       </a>
-      <div className={styles.shell}>
+      <div className={`${styles.shell} ${demoMode() ? styles.demo : ''}`}>
         <AppNav unreadChats={unread} isAdmin={me.role === 'admin'} doorCount={door} />
         <div id="content" tabIndex={-1} className={styles.content}>
+          {demoMode() && (
+            <Suspense>
+              <DemoBar current={me.demo_key} />
+            </Suspense>
+          )}
           {children}
         </div>
       </div>

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import styles from './invite-panel.module.css';
 
-export function InvitePanel({ who, message, waUrl, heading, intro, onBack, backLabel = 'back' }: { who: string; message: string; waUrl: string; heading: string; intro: string; onBack: () => void; backLabel?: string }) {
+export function InvitePanel({ who, message, waUrl, link, heading, intro, onBack, backLabel = 'back' }: { who: string; message: string; waUrl: string | null; link: string; heading: string; intro: string; onBack: () => void; backLabel?: string }) {
   const [copied, setCopied] = useState(false);
   async function copy() {
     try {
@@ -27,14 +27,24 @@ export function InvitePanel({ who, message, waUrl, heading, intro, onBack, backL
       <p className={styles.intro}>{intro}</p>
       <p className={styles.message}>{message}</p>
       <div className={styles.buttons}>
-        <a href={waUrl} target="_blank" rel="noopener noreferrer" className={styles.primary}>
-          send on whatsapp
-        </a>
+        {waUrl ? (
+          <a href={waUrl} target="_blank" rel="noopener noreferrer" className={styles.primary}>
+            send on whatsapp
+          </a>
+        ) : (
+          <a href={link} className={styles.primary}>
+            open her link
+          </a>
+        )}
         <button type="button" className={styles.outline} onClick={copy}>
           <span role="status">{copied ? 'copied' : 'copy message'}</span>
         </button>
       </div>
-      <p className={styles.hint}>whatsapp opens with the message ready, you just press send. for instagram, copy it and paste it in her dm. this link is shown only now: lost it? make a new one.</p>
+      <p className={styles.hint}>
+        {waUrl
+          ? 'whatsapp opens with the message ready, you just press send. for instagram, copy it and paste it in her dm. this link is shown only now: lost it? make a new one.'
+          : 'in the club this opens whatsapp with the message ready. in the demo, open her link to join as her, then switch back with the bar at the top. it works once.'}
+      </p>
       <button type="button" className={styles.back} onClick={onBack}>
         {backLabel}
       </button>

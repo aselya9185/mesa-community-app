@@ -1,5 +1,6 @@
 'use server';
 
+import { demoMode } from '@/lib/demo';
 import { ipHash } from '@/lib/request';
 import { supabaseService } from '@/lib/supabase/service';
 import { handleApply, type ApplyIntent, type ApplyResult } from '@/server/apply';
@@ -10,6 +11,8 @@ export async function applyAction(_prev: ApplyFormState, formData: FormData): Pr
   const get = (k: string) => String(formData.get(k) ?? '');
   const values = { name: get('name'), instagram: get('instagram'), whatsapp: get('whatsapp'), invitedBy: get('invitedBy') };
   const intent: ApplyIntent = get('intent') === 'request_link' ? 'request_link' : 'apply';
+  // the demo keeps nothing a real person types: show the same screen without storing or looking anything up
+  if (demoMode()) return { state: intent === 'request_link' ? 'link_requested' : 'listed', values };
   const result = await handleApply(
     supabaseService(),
     {

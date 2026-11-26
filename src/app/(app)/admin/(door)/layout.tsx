@@ -4,7 +4,7 @@ import { supabaseServer } from '@/lib/supabase/server';
 import styles from './door.module.css';
 
 export default async function DoorLayout({ children }: { children: React.ReactNode }) {
-  await requireAdmin();
+  const me = await requireAdmin();
   const supabase = await supabaseServer();
   const { data } = await supabase.rpc('admin_counts');
   const c = (data ?? { requests: 0, link_requests: 0, reports: 0 }) as { requests: number; link_requests: number; reports: number };
@@ -18,6 +18,7 @@ export default async function DoorLayout({ children }: { children: React.ReactNo
         door list · only you
       </p>
       <h1 className={styles.title}>who&apos;s at the door</h1>
+      {me.is_demo && <p className={styles.demoNote}>in the club this door also asks for a 6-digit code from an authenticator app. the demo did that step for you.</p>}
       <AdminTabs requests={Number(c.requests) + Number(c.link_requests)} reports={Number(c.reports)} />
       {children}
     </main>
