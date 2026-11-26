@@ -91,7 +91,7 @@ export async function makeUser(opts: {
     if (p.error) throw new Error(`profile insert failed: ${p.error.message}`);
     const m = await svc.from('member_private').insert({ user_id: id, whatsapp_e164: phone });
     if (m.error) throw new Error(`member_private insert failed: ${m.error.message}`);
-    const ig = await svc.from('member_instagram').insert({ user_id: id, handle: `@${name.replace(/\s+/g, '.')}`, is_public: opts.instagramPublic ?? false });
+    const ig = await svc.from('member_instagram').insert({ user_id: id, handle: `@${name.replace(/[^A-Za-z0-9._]+/g, '.').slice(0, 30)}`, is_public: opts.instagramPublic ?? false });
     if (ig.error) throw new Error(`member_instagram insert failed: ${ig.error.message}`);
   }
   return { id, phone, password, name };

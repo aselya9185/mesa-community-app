@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 import styles from '@/components/auth.module.css';
 import type { Me } from '@/lib/auth';
 import { PhotoField } from '@/components/PhotoField';
@@ -10,6 +10,11 @@ import { saveCardAction, type CardState } from './actions';
 export function CardForm({ me, photoUrl = null, next = '/plans', heading = 'make your card' }: { me: Me; photoUrl?: string | null; next?: string; heading?: string }) {
   const [state, action, pending] = useActionState<CardState, FormData>(saveCardAction, null);
   const errors = state?.errors;
+  const form = useRef<HTMLFormElement>(null);
+  // the fields are rebuilt after a failed save, so put the keyboard back on the first one that needs fixing
+  useEffect(() => {
+    if (state) form.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+  }, [state]);
   // after an error the fields show what she submitted, not what is saved
   const v = state?.values ?? {
     name: me.name,
@@ -21,7 +26,7 @@ export function CardForm({ me, photoUrl = null, next = '/plans', heading = 'make
     bio: me.bio ?? '',
   };
   return (
-    <form action={action} className={styles.form}>
+    <form ref={form} action={action} className={styles.form}>
       <input type="hidden" name="next" value={next} />
       <h1 className={styles.title}>{heading}</h1>
       <p className={styles.sub}>this is how members see you. your whatsapp number never shows here.</p>
@@ -50,8 +55,8 @@ export function CardForm({ me, photoUrl = null, next = '/plans', heading = 'make
         <label htmlFor="trainsAt" className={styles.label}>
           where do you train?
         </label>
-        <input id="trainsAt" name="trainsAt" className={styles.input} defaultValue={v.trainsAt} placeholder="separate places with commas" />
-        <span className={styles.hint}>so members can see who trains where</span>
+        <input id="trainsAt" name="trainsAt" className={styles.input} defaultValue={v.trainsAt} placeholder="separate places with commas" maxLength={300} aria-invalid={!!errors?.trainsAt} />
+        <span className={errors?.trainsAt ? styles.error : styles.hint}>{errors?.trainsAt ?? 'so members can see who trains where'}</span>
       </div>
       <fieldset className={styles.field} style={{ border: 0, padding: 0, margin: 0 }}>
         <legend className={styles.label} style={{ padding: 0, marginBottom: 6 }}>

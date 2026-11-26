@@ -52,6 +52,10 @@ test('a mistake in the form never publishes a handle she just switched off', asy
   await page.getByRole('button', { name: 'done' }).click();
 
   await expect(page.getByText('that does not look like an instagram handle')).toBeVisible();
+  await expect(handle).toBeFocused(); // the keyboard lands on what needs fixing
+  await page.getByRole('button', { name: 'done' }).click(); // a second failed try changes nothing either
+  await expect(handle).toBeFocused(); // focus comes back only once that second answer has arrived
+  await expect(page.getByText('that does not look like an instagram handle')).toBeVisible();
   await expect(box).not.toBeChecked(); // her choice is kept
   await expect(handle).toHaveValue('https://instagram.com/anaerror'); // and what she typed
 

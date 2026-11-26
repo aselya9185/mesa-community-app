@@ -76,14 +76,15 @@ export async function newLinkAction(profileId: string): Promise<InviteOut> {
   return pack(first(prof.name as string), priv.whatsapp_e164 as string, message);
 }
 
-export async function removeMemberAction(profileId: string): Promise<void> {
+export async function removeMemberAction(profileId: string): Promise<{ error?: string }> {
   await requireAdmin();
   const supabase = await supabaseServer();
   const { error } = await supabase.rpc('admin_remove_member', { p_user: profileId });
-  if (error) return;
+  if (error) return { error: "couldn't remove her. try again." };
   // also stop her signing in or refreshing a session (the database already ended her access)
   await supabaseService().auth.admin.updateUserById(profileId, { ban_duration: '876000h' });
   revalidatePath('/', 'layout');
+  return {};
 }
 
 export async function resolveReportAction(reportId: string): Promise<void> {

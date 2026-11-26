@@ -89,8 +89,8 @@ export function ApplyForm({ vouchCode, fromForgot }: { vouchCode?: string; fromF
         <label htmlFor="invitedBy" className={styles.label}>
           invited by a member? <span className={styles.optional}>(optional)</span>
         </label>
-        <input id="invitedBy" name="invitedBy" className={styles.input} placeholder="her instagram" autoCapitalize="none" autoCorrect="off" maxLength={31} />
-        <span className={styles.hint}>a vouch gets you in faster</span>
+        <input id="invitedBy" name="invitedBy" defaultValue={state?.values.invitedBy} className={styles.input} placeholder="her instagram" autoCapitalize="none" autoCorrect="off" maxLength={31} aria-invalid={!!errors?.invitedBy} />
+        <span className={errors?.invitedBy ? styles.error : styles.hint}>{errors?.invitedBy ?? 'a vouch gets you in faster'}</span>
       </div>
 
       {/* bots fill every field they see; people never see this one */}

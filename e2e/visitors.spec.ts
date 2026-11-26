@@ -29,6 +29,18 @@ test.describe('visitors', () => {
     await serviceClient().from('applications').delete().eq('whatsapp_e164', phone);
   });
 
+  test('keep what they typed after a mistake, including who invited them', async ({ page }) => {
+    await page.goto('/apply');
+    await page.getByLabel('your name').fill('Lu');
+    await page.getByLabel('your instagram').fill('@lu.e2e');
+    await page.getByLabel('whatsapp number').fill('12');
+    await page.getByLabel(/invited by a member/).fill('@carla.e2e');
+    await page.getByRole('button', { name: 'request invite' }).click();
+    await expect(page.getByText('that number does not look right', { exact: false })).toBeVisible();
+    await expect(page.getByLabel(/invited by a member/)).toHaveValue('@carla.e2e');
+    await expect(page.getByLabel('your instagram')).toHaveValue('@lu.e2e');
+  });
+
   test('get a generic message for a wrong password', async ({ page }) => {
     const user = await makeUser();
     await login(page, { phone: user.phone, password: 'not-the-password-1' }, '/plans', { expectSuccess: false });

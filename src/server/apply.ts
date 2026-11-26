@@ -26,12 +26,12 @@ export type ApplyInput = {
   intent?: ApplyIntent;
 };
 
-export type ApplyResult = { state: ApplyState; errors?: Partial<Record<'name' | 'instagram' | 'whatsapp', string>> };
+export type ApplyResult = { state: ApplyState; errors?: Partial<Record<'name' | 'instagram' | 'whatsapp' | 'invitedBy', string>> };
 
 const schema = z.object({
   name: z.string().trim().min(1, 'tell us your name').max(60),
   instagram: z.string().trim().refine(isValidHandle, 'that does not look like an instagram handle'),
-  invitedBy: z.string().trim().max(40).optional(),
+  invitedBy: z.string().trim().refine(isValidHandle, 'type her instagram handle, like @name, or leave it empty').optional(),
 });
 
 export const LIMITS = {
@@ -55,7 +55,7 @@ export async function handleApply(svc: SupabaseClient, input: ApplyInput, ctx: {
     // a re-request ("didn't get my link") re-confirms with number + instagram only
     name: intent === 'request_link' ? (input.name?.trim() || 'x') : input.name,
     instagram: input.instagram ?? '',
-    invitedBy: input.invitedBy || undefined,
+    invitedBy: input.invitedBy?.trim() || undefined,
   });
   if (!e164 || !parsed.success) {
     const errors: ApplyResult['errors'] = {};
@@ -63,7 +63,7 @@ export async function handleApply(svc: SupabaseClient, input: ApplyInput, ctx: {
     if (!parsed.success) {
       for (const issue of parsed.error.issues) {
         const k = issue.path[0];
-        if (k === 'name' || k === 'instagram') errors[k] = issue.message;
+        if (k === 'name' || k === 'instagram' || k === 'invitedBy') errors[k] = issue.message;
       }
     }
     return { state: 'invalid', errors };

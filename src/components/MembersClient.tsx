@@ -67,7 +67,11 @@ export function MembersClient({ members }: { members: MemberItem[] }) {
                 body="she loses access to all plans and chats right away, and plans she hosts are cancelled. she can request an invite again later."
                 confirmLabel="remove from the club"
                 cancelLabel="keep her"
-                onConfirm={() => removeMemberAction(m.id)}
+                onConfirm={async () => {
+                  setError(null);
+                  const r = await removeMemberAction(m.id);
+                  if (r.error) setError(r.error);
+                }}
               />
             )}
           </li>
