@@ -2,10 +2,10 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { enterDemoAction } from '@/app/demo/actions';
 import { PersonaButton } from '@/components/PersonaButton';
-import { demoMode } from '@/lib/demo';
 import authStyles from '@/components/auth.module.css';
 import { requireAdminAnyLevel } from '@/lib/admin';
 import { supabaseServer } from '@/lib/supabase/server';
+import { demoActive } from '@/server/demo-active';
 import { MfaChallenge, MfaSetup } from './MfaForms';
 import styles from './mfa.module.css';
 
@@ -17,7 +17,7 @@ export default async function MfaPage() {
   const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
   if (aal?.currentLevel === 'aal2') redirect('/admin/requests');
   // the demo admin never types a code: entering again completes the step (for example after another visitor reset it)
-  if (me.demo_key === 'admin' && demoMode()) {
+  if (me.demo_key === 'admin' && (await demoActive())) {
     return (
       <main className={styles.page}>
         <h1 className={styles.title}>back to the door</h1>

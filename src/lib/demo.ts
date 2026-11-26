@@ -11,14 +11,14 @@ export const PERSONAS = [
     label: 'member 1',
     who: 'marta',
     summary: 'join plans, chat, vote',
-    tries: 'open "zumba after work": read the chat, vote for plans after, mark yourself booked.',
+    tries: 'open "zumba after work": read the chat, say something, vote for plans after.',
   },
   {
     key: 'host',
     label: 'member 2',
     who: 'anna',
     summary: 'host plans, give the free +1',
-    tries: 'open "zumba after work" and give marta the free +1. drop a plan of your own.',
+    tries: 'open "zumba after work" and give marta the free +1 (or take it back). drop a plan of your own.',
   },
   {
     key: 'admin',
@@ -39,7 +39,7 @@ export function isPersona(value: string): value is PersonaKey {
 export function demoTarget(persona: PersonaKey, next: string | null | undefined): string {
   const safe = !!next && next.startsWith('/') && !next.startsWith('//') && !next.includes('\\');
   const path = safe ? next : '';
-  const stays = /^\/(plans|chats|card|notifications)(\/|\?|$)/.test(path) && !path.startsWith('/card/edit') && !/\/edit(\?|$)/.test(path);
+  const stays = /^\/(plans|chats|card|notifications|members)(\/|\?|$)/.test(path) && !path.startsWith('/card/edit') && !/\/edit(\?|$)/.test(path);
   if (persona === 'admin') return path.startsWith('/admin/') && !path.startsWith('/admin/mfa') ? path : '/admin/requests';
   return stays ? path : '/plans';
 }

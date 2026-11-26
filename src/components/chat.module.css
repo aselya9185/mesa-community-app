@@ -87,6 +87,13 @@
   font-weight: 700;
 }
 
+/* a bigger target for the name link, without moving anything */
+a.who {
+  display: inline-block;
+  padding: 13px 0;
+  margin: -13px 0;
+}
+
 .bubble {
   background: var(--surface-2);
   border-radius: 18px 18px 18px 6px;

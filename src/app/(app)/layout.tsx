@@ -4,14 +4,15 @@ import { DemoBar } from '@/components/DemoBar';
 import { NotificationsProvider } from '@/components/NotificationsProvider';
 import { ServiceWorker } from '@/components/ServiceWorker';
 import { requireMember } from '@/lib/auth';
-import { demoMode } from '@/lib/demo';
 import { supabaseServer } from '@/lib/supabase/server';
+import { demoActive } from '@/server/demo-active';
 import styles from './shell.module.css';
 
 // every page in here is members only: requireMember sends visitors to /login and signs removed members out
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const me = await requireMember();
   const supabase = await supabaseServer();
+  const demo = await demoActive();
   // independent questions: ask them together (each one is a trip to the database)
   const [{ data }, { data: counts }, { count: unreadNotes }] = await Promise.all([
     supabase.rpc('my_chats'),
@@ -26,10 +27,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <a href="#content" className={styles.skip}>
         skip to content
       </a>
-      <div className={`${styles.shell} ${demoMode() ? styles.demo : ''}`}>
+      <div className={`${styles.shell} ${demo ? styles.demo : ''}`}>
         <AppNav unreadChats={unread} isAdmin={me.role === 'admin'} doorCount={door} />
         <div id="content" tabIndex={-1} className={styles.content}>
-          {demoMode() && (
+          {demo && (
             <Suspense>
               <DemoBar current={me.demo_key} />
             </Suspense>

@@ -1,5 +1,5 @@
 .shell {
-  min-height: 100dvh;
+  min-height: calc(100dvh - var(--demo-h, 0px));
   display: grid;
   grid-template-columns: 1fr;
 }

@@ -1,6 +1,9 @@
 .bar {
-  position: sticky;
+  /* fixed, not sticky: the page column is only one screen tall on tablet and desktop */
+  position: fixed;
   top: 0;
+  right: 0;
+  left: var(--demo-left, 0px);
   z-index: 30;
   height: var(--demo-h, 60px);
   box-sizing: border-box;

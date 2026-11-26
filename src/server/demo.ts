@@ -25,11 +25,13 @@ export async function demoEntryAllowed(svc: SupabaseClient, ipHash: string): Pro
   return data === true;
 }
 
-async function castIds(svc: SupabaseClient): Promise<Map<string, string>> {
-  const { data, error } = await svc.from('profiles').select('id, demo_key').not('demo_key', 'is', null);
+async function castProfiles(svc: SupabaseClient): Promise<{ id: string; demo_key: string; status: string }[]> {
+  const { data, error } = await svc.from('profiles').select('id, demo_key, status').not('demo_key', 'is', null);
   if (error) throw new Error(`could not read the demo cast: ${error.message}`);
-  return new Map((data ?? []).map((p) => [p.demo_key as string, p.id as string]));
+  return (data ?? []) as { id: string; demo_key: string; status: string }[];
 }
+
+const castIds = async (svc: SupabaseClient) => new Map((await castProfiles(svc)).map((p) => [p.demo_key, p.id]));
 
 /** create the one person of the cast who does not exist yet (safe when two visitors arrive at once) */
 async function createCastMember(svc: SupabaseClient, c: Cast): Promise<void> {
@@ -66,44 +68,74 @@ export async function ensureDemo(svc: SupabaseClient): Promise<{ cast: Cast[]; i
   for (const c of missing) await createCastMember(svc, c);
   if (missing.length) ids = await castIds(svc);
 
-  // refresh when new, or when the sample plans have all passed (a missed nightly reset)
+  // refresh when new, after the demo was switched off, or when the sample plans have all passed (a missed nightly reset)
+  const shut = (await castProfiles(svc)).some((p) => p.status !== 'active');
   const { count } = await svc
     .from('plans')
     .select('id', { count: 'exact', head: true })
     .eq('status', 'active')
     .gt('starts_at', new Date().toISOString())
     .in('host_id', [...ids.values()]);
-  if (missing.length || !count) {
+  if (missing.length || shut || !count) {
     const reset = await svc.rpc('demo_reset');
     if (reset.error) throw new Error(`demo reset failed: ${reset.error.message}`);
   }
   return { cast, ids };
 }
 
-async function verifyCode(client: SupabaseClient, factorId: string, secret: string): Promise<boolean> {
-  // a code can be refused if another visitor used it a moment ago: try the next window too
+/** 'ok', 'refused' (the code was wrong: the saved secret no longer fits) or 'unavailable' (try again later) */
+async function verifyCode(client: SupabaseClient, factorId: string, secret: string): Promise<'ok' | 'refused' | 'unavailable'> {
+  // a code can be refused if it was used a moment ago: try the next window too
   for (const shift of [0, 30_000]) {
     const challenge = await client.auth.mfa.challenge({ factorId });
-    if (challenge.error || !challenge.data) return false;
+    if (challenge.error || !challenge.data) return 'unavailable';
     const result = await client.auth.mfa.verify({ factorId, challengeId: challenge.data.id, code: totp(secret, Date.now() + shift) });
-    if (!result.error) return true;
+    if (!result.error) return 'ok';
+    if (result.error.code !== 'mfa_verification_failed') return 'unavailable';
   }
-  return false;
+  return 'refused';
 }
 
-/** the demo admin's second step, done by the server. Heals itself if a visitor removed or added authenticators. */
+/**
+ * The demo admin's second step, done by the server. Heals itself if a visitor removed the authenticator. Deleting an
+ * authenticator signs out everyone who used it, so that happens only when the saved one is gone or no longer fits,
+ * never because the auth server had a bad moment.
+ */
 async function completeTwoStep(svc: SupabaseClient, client: SupabaseClient, userId: string): Promise<boolean> {
-  const { data: stored } = await svc.from('demo_secrets').select('factor_id, secret').eq('id', 1).maybeSingle();
-  const factors = (await svc.auth.admin.mfa.listFactors({ userId })).data?.factors ?? [];
+  const { data: stored, error } = await svc.from('demo_secrets').select('factor_id, secret').eq('id', 1).maybeSingle();
+  const listed = await svc.auth.admin.mfa.listFactors({ userId });
+  if (error || listed.error) return false;
+  const factors = listed.data?.factors ?? [];
   if (stored && factors.some((f) => f.id === stored.factor_id && f.status === 'verified')) {
-    if (await verifyCode(client, stored.factor_id as string, stored.secret as string)) return true;
+    const result = await verifyCode(client, stored.factor_id as string, stored.secret as string);
+    if (result !== 'refused') return result === 'ok';
   }
   for (const f of factors) await svc.auth.admin.mfa.deleteFactor({ id: f.id, userId });
   const enrolled = await client.auth.mfa.enroll({ factorType: 'totp', friendlyName: `demo ${Date.now()}` });
   if (enrolled.error || !enrolled.data) return false;
-  if (!(await verifyCode(client, enrolled.data.id, enrolled.data.totp.secret))) return false;
+  if ((await verifyCode(client, enrolled.data.id, enrolled.data.totp.secret)) !== 'ok') return false;
   const saved = await svc.from('demo_secrets').upsert({ id: 1, factor_id: enrolled.data.id, secret: enrolled.data.totp.secret });
   return !saved.error;
+}
+
+const LOCK_SECONDS = 15; // longer than a sign-in takes; a crashed one frees itself
+const LOCK_WAIT_MS = 20_000;
+
+/** one sign-in per demo person at a time, across all server instances */
+async function inTurn<T>(svc: SupabaseClient, key: string, work: () => Promise<T>): Promise<T> {
+  const until = Date.now() + LOCK_WAIT_MS;
+  for (;;) {
+    const { data, error } = await svc.rpc('demo_lock', { p_key: key, p_seconds: LOCK_SECONDS });
+    if (error) throw new Error(`demo queue failed: ${error.message}`);
+    if (data === true) break;
+    if (Date.now() > until) throw new Error('demo sign in is busy');
+    await pause(120 + Math.random() * 120);
+  }
+  try {
+    return await work();
+  } finally {
+    await svc.rpc('demo_unlock', { p_key: key });
+  }
 }
 
 /** sign the visitor in as a persona. Throws if it cannot. */
@@ -114,29 +146,37 @@ export async function enterDemo(svc: SupabaseClient, client: SupabaseClient, per
   if (!person || !userId) throw new Error('unknown demo person');
   const email = loginEmail(person.phone);
 
-  // heal anything a previous visitor did to the login itself
-  const { data: current } = await svc.auth.admin.getUserById(userId);
-  const banned = !!(current.user as { banned_until?: string } | null)?.banned_until;
-  if (current.user?.email !== email || banned) {
-    const healed = await svc.auth.admin.updateUserById(userId, { email, email_confirm: true, ban_duration: 'none' });
-    if (healed.error) throw new Error(`could not restore the demo login: ${healed.error.message}`);
-  }
-
   await client.auth.signOut({ scope: 'local' }); // leave the previous person on this device only
-  let lastError = 'sign in failed';
-  for (let attempt = 0; attempt < 4; attempt++) {
-    const link = await svc.auth.admin.generateLink({ type: 'magiclink', email });
-    if (link.error || !link.data.properties) {
-      lastError = link.error?.message ?? lastError;
-    } else {
-      // a second visitor asking at the same moment replaces the one-time token: just ask again
-      const verified = await client.auth.verifyOtp({ token_hash: link.data.properties.hashed_token, type: 'magiclink' });
-      if (!verified.error) {
-        if (persona !== 'admin' || (await completeTwoStep(svc, client, userId))) return { userId };
-        lastError = 'second step failed';
-      } else lastError = verified.error.message;
+
+  await inTurn(svc, persona, async () => {
+    // heal anything a previous visitor did to the login itself
+    const { data: current } = await svc.auth.admin.getUserById(userId);
+    const banned = !!(current.user as { banned_until?: string } | null)?.banned_until;
+    if (current.user?.email !== email || banned) {
+      const healed = await svc.auth.admin.updateUserById(userId, { email, email_confirm: true, ban_duration: 'none' });
+      if (healed.error) throw new Error(`could not restore the demo login: ${healed.error.message}`);
     }
-    await pause(250 * (attempt + 1));
+
+    let lastError = 'sign in failed';
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const link = await svc.auth.admin.generateLink({ type: 'magiclink', email });
+      if (link.error || !link.data.properties) {
+        lastError = link.error?.message ?? lastError;
+      } else {
+        const verified = await client.auth.verifyOtp({ token_hash: link.data.properties.hashed_token, type: 'magiclink' });
+        if (!verified.error) {
+          if (persona !== 'admin' || (await completeTwoStep(svc, client, userId))) return;
+          lastError = 'second step failed';
+        } else lastError = verified.error.message;
+      }
+      await pause(250 * (attempt + 1));
+    }
+    throw new Error(`demo sign in failed: ${lastError}`);
+  });
+
+  if (persona === 'admin') {
+    const filled = await svc.rpc('demo_top_up_requests');
+    if (filled.error) console.error('demo requests not refilled:', filled.error.message);
   }
-  throw new Error(`demo sign in failed: ${lastError}`);
+  return { userId };
 }

@@ -59,6 +59,13 @@ Run it with `npm run test:e2e` (the demo suite is the second half: `playwright.d
 | upload a photo, register for push, send the push webhook | refused or skipped | `tests/db/demo.test.ts` |
 | type a real-looking number into the request form | success message, nothing stored; the database refuses it even from the server | `e2e-demo`, `tests/db/demo.test.ts` |
 | switch the demo on where a real member or request exists | refused | `tests/db/demo.test.ts` |
+| only `DEMO_MODE=true`, database switch off | behaves like the club: no demo pages or bar, a request is stored | `e2e-demo` |
+| add a real admin while the demo is on | not a demo account; the demo admin cannot touch her | `tests/db/demo.test.ts` |
+| as a demo account, see or join a real account's plan, read her private handle or audit log; check what she is notified about | nothing, refused, no notifications | `tests/db/demo.test.ts` |
+| set a password, add an authenticator, store account data, then reset, or switch the demo off | all gone; old sessions dead; switched off, demo accounts read nothing | `tests/db/demo.test.ts` |
+| several visitors arrive as the same person at the same moment | nobody is signed out | `tests/db/demo.test.ts` |
+| decide every request, then enter as admin again | new fake requests are waiting | `tests/db/demo.test.ts` |
+| scroll a long page; open an invite link and the new-card page | the demo bar stays in view and is there on both | `e2e-demo` |
 | remove the demo admin's authenticator, change a demo login, then enter again | entry repairs itself | `tests/db/demo.test.ts` |
 | `demo_reset` twice, and with the owner's plan present | cast and sample data restored, owner untouched | `tests/db/demo.test.ts` |
 | tap one persona many times quickly | rate limit message, no error page | `tests/db/demo.test.ts` |

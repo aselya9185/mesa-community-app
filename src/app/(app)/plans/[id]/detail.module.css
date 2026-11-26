@@ -157,6 +157,7 @@
 .name {
   flex: 1;
   min-width: 0;
+  line-height: var(--touch);
   font-size: 14px;
   font-weight: 700;
   white-space: nowrap;
@@ -303,7 +304,7 @@
   display: flex;
   gap: 4px;
   margin: 8px 20px 0;
-  padding: 4px;
+  padding: 2px;
   border-radius: 24px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -311,8 +312,8 @@
 
 .tab {
   flex: 1;
-  height: 40px;
-  border-radius: 20px;
+  height: var(--touch);
+  border-radius: 22px;
   display: flex;
   align-items: center;
   justify-content: center;

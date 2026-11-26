@@ -1,11 +1,11 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { demoMode } from '@/lib/demo';
 import { loginEmail, normalizePhone } from '@/lib/phone';
 import { ipHash } from '@/lib/request';
 import { supabaseServer } from '@/lib/supabase/server';
 import { supabaseService } from '@/lib/supabase/service';
+import { demoActive } from '@/server/demo-active';
 import { loginAllowed } from '@/server/login';
 import { safeNext } from '@/lib/time';
 
@@ -28,7 +28,7 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
 
 export async function logoutAction() {
   const supabase = await supabaseServer();
-  if (demoMode()) {
+  if (await demoActive()) {
     // many visitors share each demo person: sign out this device only
     await supabase.auth.signOut({ scope: 'local' });
     redirect('/demo');

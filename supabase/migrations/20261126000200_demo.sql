@@ -30,6 +30,13 @@ alter table public.demo_secrets enable row level security;
 revoke all on public.demo_secrets from public, anon, authenticated;
 grant select, insert, update, delete on public.demo_secrets to service_role;
 
+-- the only numbers the demo may hold: +34 600 000 0xx
+create function public.demo_fake_phone(p text) returns boolean
+language sql immutable set search_path = ''
+as $$ select coalesce(p ~ '^\+346000000[0-9]{2}$', false); $$;
+revoke all on function public.demo_fake_phone(text) from public, anon, authenticated;
+grant execute on function public.demo_fake_phone(text) to service_role;
+
 create function public.demo_enabled() returns boolean
 language sql stable security definer set search_path = ''
 as $$ select coalesce((select enabled from public.demo_config where id = 1), false); $$;
@@ -44,7 +51,6 @@ revoke all on function public.is_demo_caller() from public, anon;
 grant execute on function public.is_demo_caller() to authenticated, service_role;
 
 -- never switch on where real members live, or where a real person's request waits: the demo admin reads the door list.
--- (numbers starting +34600000 are the range reserved for the fake data below)
 create function public.demo_guard_enable() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
@@ -52,7 +58,7 @@ begin
   if new.enabled and exists (select 1 from public.profiles where role = 'member' and not is_demo) then
     raise exception 'real_members_present' using errcode = '55000';
   end if;
-  if new.enabled and exists (select 1 from public.applications where whatsapp_e164 not like '+34600000%') then
+  if new.enabled and exists (select 1 from public.applications where not public.demo_fake_phone(whatsapp_e164)) then
     raise exception 'real_requests_present' using errcode = '55000';
   end if;
   return new;
@@ -61,12 +67,13 @@ revoke all on function public.demo_guard_enable() from public, anon, authenticat
 create trigger demo_guard_enable before insert or update on public.demo_config
   for each row execute function public.demo_guard_enable();
 
--- every account created while the demo runs (for example by opening an invite link) is a demo account
+-- every member account created while the demo runs (for example by opening an invite link) is a demo account.
+-- An admin never is, unless the server says so (the cast): a second real admin must stay out of the demo's reach.
 create function public.demo_mark_new_profile() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 begin
-  if public.demo_enabled() then new.is_demo := true; end if;
+  if new.role = 'member' and public.demo_enabled() then new.is_demo := true; end if;
   return new;
 end $$;
 revoke all on function public.demo_mark_new_profile() from public, anon, authenticated;
@@ -78,7 +85,7 @@ create function public.demo_no_real_requests() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 begin
-  if public.demo_enabled() and new.whatsapp_e164 not like '+34600000%' then
+  if public.demo_enabled() and not public.demo_fake_phone(new.whatsapp_e164) then
     raise exception 'demo_no_requests' using errcode = '55000';
   end if;
   return new;
@@ -95,7 +102,7 @@ language plpgsql security definer set search_path = ''
 as $$
 begin
   if new.profile_id is not null and public.is_demo_caller()
-     and not exists (select 1 from public.profiles p where p.id = new.profile_id and p.is_demo and p.demo_key is null) then
+     and not exists (select 1 from public.profiles p where p.id = new.profile_id and p.is_demo and p.demo_key is null and p.role = 'member') then
     raise exception 'demo_protected' using errcode = '42501';
   end if;
   return new;
@@ -145,6 +152,112 @@ create policy demo_no_avatar_update on storage.objects as restrictive for update
   with check (bucket_id <> 'avatars' or not public.is_demo_caller());
 
 -- (flooding the feed is already limited for everyone by create_plan: too_many_plans)
+
+-- 5. see or join a real account's plans, or read a real account's private handle or audit log
+create policy demo_plans_only on public.plans as restrictive for select to authenticated
+  using (not public.is_demo_caller() or exists (select 1 from public.profiles p where p.id = plans.host_id and p.is_demo));
+
+create function public.demo_stay_in_demo() returns trigger
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  if exists (select 1 from public.profiles p where p.id = new.user_id and p.is_demo)
+     and exists (select 1 from public.plans pl join public.profiles h on h.id = pl.host_id where pl.id = new.plan_id and not h.is_demo) then
+    raise exception 'demo_protected' using errcode = '42501';
+  end if;
+  return new;
+end $$;
+revoke all on function public.demo_stay_in_demo() from public, anon, authenticated;
+create trigger demo_stay_in_demo before insert or update of plan_id, user_id on public.plan_members
+  for each row execute function public.demo_stay_in_demo();
+
+create policy demo_private_handles on public.member_instagram as restrictive for select to authenticated
+  using (is_public or not public.is_demo_caller()
+         or exists (select 1 from public.profiles p where p.id = member_instagram.user_id and p.is_demo));
+create policy demo_own_audit on public.admin_events as restrictive for select to authenticated
+  using (not public.is_demo_caller() or exists (select 1 from public.profiles p where p.id = admin_events.admin_id and p.is_demo));
+
+-- and real accounts are not pinged about what strangers do in the demo
+create function public.demo_quiet_real_accounts() returns trigger
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  if new.plan_id is not null
+     and exists (select 1 from public.plans pl join public.profiles h on h.id = pl.host_id where pl.id = new.plan_id and h.is_demo)
+     and not exists (select 1 from public.profiles p where p.id = new.user_id and p.is_demo) then
+    return null;
+  end if;
+  return new;
+end $$;
+revoke all on function public.demo_quiet_real_accounts() from public, anon, authenticated;
+create trigger demo_quiet_real_accounts before insert on public.notifications
+  for each row execute function public.demo_quiet_real_accounts();
+
+------------------------------------------------------------------ undoing what visitors did to the logins
+-- Visitors hold real sessions, so with the public key they can set a password, add an authenticator, change the login
+-- or store data on it. This takes all of that away from every demo account. p_keep_factor: the server's own.
+create function public.demo_scrub_logins(p_keep_factor uuid) returns void
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  delete from auth.sessions where user_id in (select id from public.profiles where is_demo);
+  delete from auth.one_time_tokens where user_id in (select id from public.profiles where is_demo);
+  delete from auth.mfa_factors
+   where user_id in (select id from public.profiles where is_demo) and id is distinct from p_keep_factor;
+  update auth.users
+     set encrypted_password = '', raw_user_meta_data = '{}'::jsonb,
+         email_change = '', email_change_token_new = '', email_change_token_current = '', email_change_confirm_status = 0,
+         phone_change = '', phone_change_token = '', recovery_token = '', confirmation_token = ''
+   where id in (select id from public.profiles where is_demo);
+  -- the cast's logins, as written (in two steps, in case a visitor swapped them around)
+  update auth.users u set email = u.id || '@demo.mesa.invalid'
+    from public.profiles p where p.id = u.id and p.demo_key is not null;
+  update auth.users u set email = ltrim(c.phone, '+') || '@members.mesa.invalid'
+    from public.profiles p join public.demo_cast() c on c.key = p.demo_key where p.id = u.id;
+  update auth.identities i set identity_data = jsonb_set(i.identity_data, '{email}', to_jsonb(u.email))
+    from auth.users u join public.profiles p on p.id = u.id where i.user_id = u.id and i.provider = 'email' and p.demo_key is not null;
+end $$;
+revoke all on function public.demo_scrub_logins(uuid) from public, anon, authenticated;
+
+-- switching the demo off shuts every demo account, so none of them can reach what comes after
+create function public.demo_shut_down() returns trigger
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  perform public.demo_scrub_logins(null);
+  delete from public.demo_secrets where id = 1;
+  delete from public.invites where profile_id in (select id from public.profiles where is_demo)
+                                or created_by in (select id from public.profiles where is_demo);
+  delete from public.applications where public.demo_fake_phone(whatsapp_e164);
+  update public.profiles set status = 'removed' where is_demo and status <> 'removed';
+  return null;
+end $$;
+revoke all on function public.demo_shut_down() from public, anon, authenticated;
+create trigger demo_shut_down after update on public.demo_config
+  for each row when (old.enabled and not new.enabled) execute function public.demo_shut_down();
+
+------------------------------------------------------------------ one sign-in per demo person at a time
+-- two visitors finishing the same sign-in at once makes the auth server drop sessions: they queue here instead
+create table public.demo_locks (key text primary key, held_until timestamptz not null);
+alter table public.demo_locks enable row level security;
+revoke all on public.demo_locks from public, anon, authenticated;
+
+create function public.demo_lock(p_key text, p_seconds integer) returns boolean
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  insert into public.demo_locks as l (key, held_until) values (p_key, clock_timestamp() + make_interval(secs => p_seconds))
+  on conflict (key) do update set held_until = excluded.held_until where l.held_until < clock_timestamp();
+  return found;
+end $$;
+revoke all on function public.demo_lock(text, integer) from public, anon, authenticated;
+grant execute on function public.demo_lock(text, integer) to service_role;
+
+create function public.demo_unlock(p_key text) returns void
+language sql security definer set search_path = ''
+as $$ delete from public.demo_locks where key = p_key; $$;
+revoke all on function public.demo_unlock(text) from public, anon, authenticated;
+grant execute on function public.demo_unlock(text) to service_role;
 
 ------------------------------------------------------------------ the cast (single source of truth, all fake)
 create function public.demo_cast()
@@ -219,7 +332,7 @@ begin
   delete from public.plans where host_id in (select id from public.profiles where is_demo);
   delete from public.plan_messages where sender_id in (select id from public.profiles where is_demo);
   delete from public.plan_members where user_id in (select id from public.profiles where is_demo);
-  delete from public.applications where whatsapp_e164 like '+34600000%';
+  delete from public.applications where public.demo_fake_phone(whatsapp_e164);
   delete from public.reports where reported_id in (select id from public.profiles where is_demo)
                                 or reporter_id in (select id from public.profiles where is_demo);
   delete from public.blocks where blocker_id in (select id from public.profiles where is_demo)
@@ -230,6 +343,7 @@ begin
   delete from public.notifications where user_id in (select id from public.profiles where is_demo);
   -- accounts visitors created through invite links
   delete from auth.users where id in (select id from public.profiles where is_demo and demo_key is null and role = 'member');
+  perform public.demo_scrub_logins((select factor_id from public.demo_secrets where id = 1));
 
   -- 2. put the cast back as written
   update public.profiles p
@@ -245,7 +359,7 @@ begin
   update public.plan_bookings set state = 'booked' where plan_id = zumba and user_id in (select id from public.profiles where demo_key in ('host','carla'));
   perform public.demo_say(zumba, 'host',   interval '26 hours', 'booked! i have one free pass, tell me if you want it 👀');
   perform public.demo_say(zumba, 'carla',  interval '25 hours', 'booked mine too');
-  perform public.demo_say(zumba, 'julia',  interval '5 hours',  'running a bit late, save me a spot at the back');
+  perform public.demo_say(zumba, 'julia',  interval '5 hours',  'i might be a few minutes late tomorrow, save me a spot at the back');
   perform public.demo_say(zumba, 'member', interval '3 hours',  'i have not booked yet… is the pass still free?');
   perform public.demo_say(zumba, 'host',   interval '2 hours',  'it is! one sec');
 
@@ -309,6 +423,29 @@ begin
 end $$;
 revoke all on function public.demo_reset() from public, anon, authenticated;
 grant execute on function public.demo_reset() to service_role;
+
+------------------------------------------------------------------ there is always someone at the door
+-- once visitors have decided every request, the next admin gets new (fake) ones
+create function public.demo_top_up_requests() returns void
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  perform pg_advisory_xact_lock(hashtext('mesa-demo-reset'));
+  if not public.demo_enabled() then raise exception 'demo_disabled' using errcode = '55000'; end if;
+  if exists (select 1 from public.applications where status = 'pending' and public.demo_fake_phone(whatsapp_e164)) then return; end if;
+  delete from public.applications where status = 'rejected' and whatsapp_e164 ~ '^\+346000000[4-9][0-9]$';
+  insert into public.applications (name, instagram, whatsapp_e164, status, created_at)
+  select v.name, v.handle, n.phone, 'pending', now() - (v.pos || ' hours')::interval
+    from (values (1, 'Lucía', '@lucia.demo'), (2, 'Emma', '@emma.demo'), (3, 'Sofía', '@sofia.demo')) v(pos, name, handle)
+    join (
+      select '+346000000' || g as phone, row_number() over (order by g) as pos
+        from generate_series(40, 99) g
+       where not exists (select 1 from public.applications a where a.whatsapp_e164 = '+346000000' || g)
+         and not exists (select 1 from public.member_private m where m.whatsapp_e164 = '+346000000' || g)
+    ) n on n.pos = v.pos;
+end $$;
+revoke all on function public.demo_top_up_requests() from public, anon, authenticated;
+grant execute on function public.demo_top_up_requests() to service_role;
 
 ------------------------------------------------------------------ every night, only where the demo is on
 create function public.demo_reset_nightly() returns void

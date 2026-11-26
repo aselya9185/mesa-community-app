@@ -25,6 +25,7 @@ describe('demo mode', () => {
     expect(demoTarget('host', '/plans/abc?tab=chat')).toBe('/plans/abc?tab=chat');
     expect(demoTarget('member', '/chats')).toBe('/chats');
     expect(demoTarget('member', '/admin/requests')).toBe('/plans');
+    expect(demoTarget('member', '/members/abc?plan=def')).toBe('/members/abc?plan=def');
     expect(demoTarget('member', '/plans/abc/edit')).toBe('/plans');
     expect(demoTarget('admin', '/plans')).toBe('/admin/requests');
     expect(demoTarget('admin', '/admin/members')).toBe('/admin/members');

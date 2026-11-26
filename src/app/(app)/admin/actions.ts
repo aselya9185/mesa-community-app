@@ -3,10 +3,10 @@
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { requireAdmin } from '@/lib/admin';
-import { demoMode } from '@/lib/demo';
 import { waDigits } from '@/lib/phone';
 import { supabaseServer } from '@/lib/supabase/server';
 import { supabaseService } from '@/lib/supabase/service';
+import { demoActive } from '@/server/demo-active';
 import { generateToken, hashToken } from '@/server/tokens';
 
 // Admin actions. Each one first re-checks the admin (with MFA); the database checks it again (is_admin()).
@@ -23,8 +23,8 @@ async function siteUrl(): Promise<string> {
 
 const first = (name: string) => name.trim().split(/\s+/)[0] ?? name;
 
-function pack(who: string, phone: string, message: string, link: string): InviteOut {
-  const waUrl = demoMode() ? null : `https://wa.me/${waDigits(phone)}?text=${encodeURIComponent(message)}`;
+async function pack(who: string, phone: string, message: string, link: string): Promise<InviteOut> {
+  const waUrl = (await demoActive()) ? null : `https://wa.me/${waDigits(phone)}?text=${encodeURIComponent(message)}`;
   return { ok: true, who, message, waUrl, link };
 }
 

@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { demoEntryAllowed, DEMO_ENTRY_LIMIT, ensureDemo, enterDemo } from '../../src/server/demo';
 import { demoOn } from './demo-helpers';
-import { anonClient, cleanup, makeUser, serviceClient, signIn, type TestUser } from './helpers';
+import { anonClient, cleanup, loginEmail, makeUser, serviceClient, signIn, type TestUser } from './helpers';
 
 const svc = serviceClient();
 const hash = () => randomBytes(32).toString('hex');
@@ -17,6 +17,7 @@ const enter = async (who: 'member' | 'host' | 'admin') => {
   const { userId } = await enterDemo(svc, client, who);
   return { client, userId };
 };
+const plan = (title: string) => ({ p_title: title, p_starts_at: new Date(Date.now() + 86_400_000).toISOString(), p_place_name: 'x', p_maps_url: null, p_booking_url: null, p_free_plus_one: false });
 const profileOf = async (id: string) => (await svc.from('profiles').select('name, role, status, is_demo, demo_key').eq('id', id).single()).data;
 
 describe('with the demo switched off (every normal database)', () => {
@@ -71,6 +72,7 @@ describe('the demo', () => {
     await svc.from('applications').delete().eq('whatsapp_e164', '+34699888777');
     expect(error?.message).toContain('real_requests_present');
     expect((await svc.from('demo_config').update({ enabled: true }).eq('id', 1)).error).toBeNull();
+    await ensureDemo(svc); // switching off shut the cast: the next visit brings it back
   });
 
   it('never stores a request with a real number while it runs, not even from the server', async () => {
@@ -206,7 +208,8 @@ describe('the demo', () => {
       const { client, userId } = await enter('member');
       await client.from('profiles').update({ name: 'rude name' }).eq('id', userId);
       await client.rpc('create_plan', { p_title: 'junk plan', p_starts_at: new Date(Date.now() + 86_400_000).toISOString(), p_place_name: 'x', p_maps_url: null, p_booking_url: null, p_free_plus_one: false });
-      await client.from('plan_messages').insert({ plan_id: ownPlan.data as string, sender_id: userId, kind: 'user', body: 'junk' });
+      const intrude = await client.from('plan_messages').insert({ plan_id: ownPlan.data as string, sender_id: userId, kind: 'user', body: 'junk' });
+      expect(intrude.error).not.toBeNull();
       const visitor = await makeUser({ name: 'visitoraccount' });
 
       expect((await svc.rpc('demo_reset')).error).toBeNull();
@@ -228,6 +231,141 @@ describe('the demo', () => {
       expect((await svc.rpc('demo_reset')).error?.message).toContain('real_members_present');
       await svc.auth.admin.deleteUser(guest.id);
     });
+  });
+
+  describe('what a visitor can leave behind', () => {
+    const level = async (c: SupabaseClient) => (await c.auth.mfa.getAuthenticatorAssuranceLevel()).data?.currentLevel;
+    const factorsOf = async (id: string) => (await svc.auth.admin.mfa.listFactors({ userId: id })).data?.factors ?? [];
+    /** what a visitor can do with a session and the public key: set a password, add an authenticator, stuff metadata */
+    const plant = async (who: 'host' | 'admin') => {
+      const { client, userId } = await enter(who);
+      const password = `vandal-${randomBytes(6).toString('hex')}-1`;
+      expect((await client.auth.updateUser({ password, data: { junk: 'x'.repeat(2000) } })).error).toBeNull();
+      const extra = await client.auth.mfa.enroll({ factorType: 'totp', friendlyName: `vandal ${Date.now()}` });
+      expect(extra.error).toBeNull();
+      const phone = (await svc.from('member_private').select('whatsapp_e164').eq('user_id', userId).single()).data!.whatsapp_e164 as string;
+      return { client, userId, password, factorId: extra.data!.id, email: loginEmail(phone) };
+    };
+    const leftovers = async (p: Awaited<ReturnType<typeof plant>>) => {
+      expect((await anonClient().auth.signInWithPassword({ email: p.email, password: p.password })).error, 'password').not.toBeNull();
+      expect((await factorsOf(p.userId)).map((f) => f.id), 'authenticator').not.toContain(p.factorId);
+      expect((await p.client.auth.getUser()).error, 'old session').not.toBeNull();
+      expect((await svc.auth.admin.getUserById(p.userId)).data.user?.user_metadata, 'metadata').not.toHaveProperty('junk');
+    };
+
+    it('is all gone after a reset, and entry still works', async () => {
+      const host = await plant('host');
+      const admin = await plant('admin');
+      expect((await svc.rpc('demo_reset')).error).toBeNull();
+      await leftovers(host);
+      await leftovers(admin);
+      expect(await level((await enter('admin')).client)).toBe('aal2');
+      expect((await enter('host')).userId).toBe(host.userId);
+    });
+
+    it('opens nothing once the demo is switched off, and the demo can come back', async () => {
+      const admin = await plant('admin');
+      const member = await enter('member');
+      expect((await svc.from('demo_config').update({ enabled: false }).eq('id', 1)).error).toBeNull();
+      const real = await svc.from('applications').insert({ name: 'Real', instagram: '@real', whatsapp_e164: '+34699888777' }).select('id').single();
+      expect(real.error).toBeNull();
+      for (const c of [admin.client, member.client]) {
+        expect((await c.from('applications').select('id')).data ?? []).toHaveLength(0);
+        expect((await c.from('profiles').select('id').neq('id', admin.userId).neq('id', member.userId)).data ?? []).toHaveLength(0);
+      }
+      await leftovers(admin);
+      expect((await factorsOf(admin.userId))).toHaveLength(0);
+      await svc.from('applications').delete().eq('id', real.data!.id);
+      expect((await svc.from('demo_config').update({ enabled: true }).eq('id', 1)).error).toBeNull();
+      expect(await level((await enter('admin')).client)).toBe('aal2');
+      expect(await profileOf(admin.userId)).toMatchObject({ status: 'active', role: 'admin' });
+    });
+  });
+
+  it('keeps earlier admins signed in when more visitors arrive at the same moment', async () => {
+    const first = (await enter('admin')).client;
+    for (let round = 0; round < 3; round++) {
+      const more = await Promise.all([enter('admin'), enter('admin'), enter('admin')]);
+      for (const c of [first, ...more.map((m) => m.client)]) {
+        expect((await c.auth.getUser()).error).toBeNull();
+        expect((await c.from('applications').select('id').limit(1)).data).toHaveLength(1);
+      }
+    }
+  });
+
+  it('always has a request waiting for the next admin', async () => {
+    await svc.from('applications').update({ status: 'rejected' }).eq('status', 'pending').like('whatsapp_e164', '+346000000%');
+    const { client } = await enter('admin');
+    const { data } = await client.from('applications').select('whatsapp_e164').eq('status', 'pending');
+    expect(data?.length).toBeGreaterThanOrEqual(3);
+    for (const a of data ?? []) expect(a.whatsapp_e164).toMatch(/^\+346000000\d\d$/);
+  });
+
+  describe('an admin who is not part of the demo, added while it runs', () => {
+    let second: TestUser;
+    let admin: SupabaseClient;
+    beforeAll(async () => {
+      second = await makeUser({ name: 'secondowner', role: 'admin' });
+      admin = (await enter('admin')).client;
+    });
+
+    it('is not a demo account', async () => {
+      expect(await profileOf(second.id)).toMatchObject({ is_demo: false });
+    });
+
+    it('cannot be given a link or removed by the demo admin, and keeps her plans through a reset', async () => {
+      expect((await admin.rpc('admin_new_link', { p_profile: second.id, p_token_hash: hash() })).error?.message).toContain('demo_protected');
+      expect((await admin.rpc('admin_remove_member', { p_user: second.id })).error).not.toBeNull();
+      const mine = await signIn(second);
+      expect((await mine.rpc('create_plan', plan('second owner plan'))).error).toBeNull();
+      expect((await svc.rpc('demo_reset')).error).toBeNull();
+      expect((await svc.from('plans').select('id').eq('host_id', second.id)).data).toHaveLength(1);
+      expect(await profileOf(second.id)).toMatchObject({ role: 'admin', status: 'active' });
+    });
+  });
+
+  describe('real accounts are out of reach of demo accounts', () => {
+    let ownPlan: string;
+    beforeAll(async () => {
+      const mine = await signIn(owner);
+      expect((await mine.from('member_instagram').update({ handle: '@owner.private', is_public: false }).eq('user_id', owner.id)).error).toBeNull();
+      expect((await svc.from('member_instagram').select('handle').eq('user_id', owner.id).single()).data?.handle).toBe('@owner.private');
+      // written by the server: her own writes need the second sign-in step
+      expect((await svc.from('admin_events').insert({ admin_id: owner.id, action: 'note', subject: 'owner only' })).error).toBeNull();
+      const made = await mine.rpc('create_plan', plan('owner private plan'));
+      expect(made.error).toBeNull();
+      ownPlan = made.data as string;
+    });
+
+    it('cannot see or join her plans', async () => {
+      for (const who of ['member', 'admin'] as const) {
+        const { client } = await enter(who);
+        expect((await client.from('plans').select('id').eq('id', ownPlan)).data).toHaveLength(0);
+        expect((await client.rpc('join_plan', { p_plan: ownPlan })).error?.message).toContain('demo_protected');
+      }
+      expect((await svc.from('plan_members').select('user_id').eq('plan_id', ownPlan)).data).toEqual([{ user_id: owner.id }]);
+      expect((await svc.from('plan_messages').select('event').eq('plan_id', ownPlan).eq('event', 'join')).data).toHaveLength(0);
+    });
+
+    it('cannot read her private handle or her audit log', async () => {
+      const { client } = await enter('admin');
+      expect((await client.from('member_instagram').select('handle').eq('user_id', owner.id)).data).toHaveLength(0);
+      expect((await client.from('admin_events').select('id').eq('admin_id', owner.id)).data).toHaveLength(0);
+      expect(((await client.from('member_instagram').select('handle')).data ?? []).length).toBeGreaterThan(0);
+    });
+
+    it('sends her no notifications about demo plans', async () => {
+      await svc.from('notifications').delete().eq('user_id', owner.id);
+      const { client } = await enter('host');
+      expect((await client.rpc('create_plan', plan('demo noise'))).error).toBeNull();
+      expect((await svc.rpc('demo_reset')).error).toBeNull();
+      expect((await svc.from('notifications').select('id').eq('user_id', owner.id)).data).toHaveLength(0);
+    });
+  });
+
+  it('only counts the exact range reserved for fake numbers', async () => {
+    const long = await svc.from('applications').insert({ name: 'Long', instagram: '@long', whatsapp_e164: '+3460000012345' });
+    expect(long.error?.message).toContain('demo_no_requests');
   });
 
   it('limits how often one network can enter', async () => {
