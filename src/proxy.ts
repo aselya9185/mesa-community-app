@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 // Refreshes the session cookie on every request and keeps visitors out of member pages.
 // This is a convenience: the real protection is row level security in the database.
-const PUBLIC = ['/apply', '/login', '/j/', '/api/push', '/api/health', '/robots.txt', '/manifest.webmanifest', '/sw.js', '/icon', '/apple-icon', '/pwa-icon', '/offline'];
+const PUBLIC = ['/demo', '/apply', '/login', '/j/', '/api/push', '/api/health', '/robots.txt', '/manifest.webmanifest', '/sw.js', '/icon', '/apple-icon', '/pwa-icon', '/offline'];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -28,7 +28,7 @@ export async function proxy(request: NextRequest) {
   if (data.user && (path === '/' || path === '/login' || path === '/apply')) {
     return redirectWithCookies(request, response, '/plans');
   }
-  if (!data.user && path === '/') return redirectWithCookies(request, response, '/apply');
+  if (!data.user && path === '/') return redirectWithCookies(request, response, process.env.DEMO_MODE === 'true' ? '/demo' : '/apply');
   return response;
 }
 

@@ -136,6 +136,7 @@ describe('who invited her', () => {
     expect(good.state).toBe('listed');
     const { data } = await svc.from('applications').select('invited_by_instagram').eq('whatsapp_e164', phone).single();
     expect(data?.invited_by_instagram).toBe('@carla.runs');
+    await svc.from('applications').delete().eq('whatsapp_e164', phone);
   });
 });
 

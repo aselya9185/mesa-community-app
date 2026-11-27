@@ -29,7 +29,7 @@ export function RequestsClient({ status, counts, items, linkRequests }: { status
   }
 
   if (panel) {
-    return <InvitePanel who={panel.who} message={panel.message} waUrl={panel.waUrl} heading={panel.heading} intro={panel.intro} onBack={() => setPanel(null)} backLabel="back to requests" />;
+    return <InvitePanel who={panel.who} message={panel.message} waUrl={panel.waUrl} link={panel.link} heading={panel.heading} intro={panel.intro} onBack={() => setPanel(null)} backLabel="back to requests" />;
   }
 
   return (

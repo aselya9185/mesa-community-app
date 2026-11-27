@@ -138,6 +138,11 @@
   gap: 8px;
 }
 
+/* rows with host buttons need more room, or the names get cut off */
+.people:has(button) {
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+}
+
 .person {
   min-height: 48px;
   display: flex;
@@ -152,6 +157,7 @@
 .name {
   flex: 1;
   min-width: 0;
+  line-height: var(--touch);
   font-size: 14px;
   font-weight: 700;
   white-space: nowrap;
@@ -298,7 +304,7 @@
   display: flex;
   gap: 4px;
   margin: 8px 20px 0;
-  padding: 4px;
+  padding: 2px;
   border-radius: 24px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -306,8 +312,8 @@
 
 .tab {
   flex: 1;
-  height: 40px;
-  border-radius: 20px;
+  height: var(--touch);
+  border-radius: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -323,7 +329,7 @@
 }
 
 .chatCol {
-  height: calc(100dvh - 176px);
+  height: calc(100dvh - var(--demo-h, 0px) - 176px);
   min-height: 420px;
   margin: 12px 12px 0;
 }
@@ -343,7 +349,7 @@
 /* phone, chat tab: the page is exactly one screen (the bar's room is added by the shell), so only the messages scroll */
 @media (max-width: 767px) {
   .wrap[data-tab='chat'] {
-    height: calc(100dvh - 104px);
+    height: calc(100dvh - var(--demo-h, 0px) - 104px);
     overflow: hidden;
   }
   .wrap[data-tab='chat'] .tabs {
@@ -362,7 +368,7 @@
     margin: 12px 20px 0;
   }
   .chatCol {
-    height: calc(100dvh - 92px);
+    height: calc(100dvh - var(--demo-h, 0px) - 92px);
     margin: 12px 12px 12px;
   }
 }
@@ -370,7 +376,7 @@
 @media (min-width: 1200px) {
   .wrap {
     flex-direction: row;
-    height: 100dvh;
+    height: calc(100dvh - var(--demo-h, 0px));
   }
   .tabs {
     display: none;
@@ -378,7 +384,7 @@
   .detailCol {
     flex: 0 0 480px;
     overflow-y: auto;
-    height: 100dvh;
+    height: calc(100dvh - var(--demo-h, 0px));
   }
   .wrap[data-tab='chat'] .detailCol,
   .wrap[data-tab='plan'] .detailCol {
@@ -390,7 +396,7 @@
     display: block;
     flex: 1;
     min-width: 0;
-    height: calc(100dvh - 32px);
+    height: calc(100dvh - var(--demo-h, 0px) - 32px);
     margin: 16px 16px 16px 4px;
   }
 }

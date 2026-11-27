@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { sendNotification, setVapidDetails } from 'web-push';
 import { z } from 'zod';
 import { supabaseService } from '@/lib/supabase/service';
+import { demoActive } from '@/server/demo-active';
 import { pushForNotification } from '@/server/push';
 import { isAuthorizedPush } from '@/server/push-auth';
 
@@ -15,6 +16,8 @@ export async function POST(request: Request) {
   if (!isAuthorizedPush(request.headers.get('x-push-secret'), process.env.PUSH_WEBHOOK_SECRET)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
+  if (await demoActive()) return NextResponse.json({ skipped: 'demo' });
+
   const parsed = body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'bad request' }, { status: 400 });
 

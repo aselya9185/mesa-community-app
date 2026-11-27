@@ -18,3 +18,13 @@
 .title {
   font-size: 40px;
 }
+
+.demoNote {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px dashed var(--border);
+  border-radius: 16px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--muted);
+}

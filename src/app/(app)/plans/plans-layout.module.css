@@ -1,6 +1,6 @@
 .split {
   /* phones: the shell adds 104px under the content for the floating bar, so together they are exactly one screen */
-  min-height: calc(100dvh - 104px);
+  min-height: calc(100dvh - var(--demo-h, 0px) - 104px);
 }
 
 .pane {
@@ -10,12 +10,12 @@
 @media (min-width: 768px) {
   .split {
     display: flex;
-    height: 100dvh;
+    height: calc(100dvh - var(--demo-h, 0px));
     min-height: 0;
   }
   .pane {
     flex: 1;
-    height: 100dvh;
+    height: calc(100dvh - var(--demo-h, 0px));
     overflow-y: auto;
   }
 }

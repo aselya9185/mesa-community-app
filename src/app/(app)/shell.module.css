@@ -2,21 +2,46 @@
   min-height: 100dvh;
 }
 
+/* the demo bar sits above the page: full-height layouts subtract it (var(--demo-h)) so nothing scrolls twice */
+.demo {
+  --demo-h: 60px;
+}
+
+.demo .content {
+  padding-top: var(--demo-h);
+}
+
 .content {
   /* room for the floating bar on phones */
   padding-bottom: 104px;
 }
 
 @media (min-width: 768px) {
+  .demo {
+    --demo-left: 100px;
+  }
+
   .content {
     padding: 0 0 0 100px;
     height: 100dvh;
+    overflow-x: clip;
   }
 }
 
 @media (min-width: 1200px) {
+  .demo {
+    --demo-left: 120px;
+  }
+
   .content {
     padding-left: 120px;
+  }
+}
+
+/* the rule above sets all four sides on wider screens: keep the demo bar's room */
+@media (min-width: 768px) {
+  .demo .content {
+    padding-top: var(--demo-h);
   }
 }
 

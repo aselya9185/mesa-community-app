@@ -1,0 +1,5 @@
+/* same room for the fixed demo bar as in the app shell */
+.frame {
+  --demo-h: 60px;
+  padding-top: var(--demo-h);
+}

@@ -31,7 +31,7 @@ export function CardForm({ me, photoUrl = null, next = '/plans', heading = 'make
       <h1 className={styles.title}>{heading}</h1>
       <p className={styles.sub}>this is how members see you. your whatsapp number never shows here.</p>
 
-      <PhotoField userId={me.id} name={me.name} currentUrl={photoUrl} />
+      <PhotoField userId={me.id} name={me.name} currentUrl={photoUrl} off={me.is_demo} />
 
       {/* a new key after each failed save: the browser resets a submitted form, so the fields are rebuilt from `v`.
           Without this her "show my instagram" choice would silently tick itself again. */}
@@ -75,7 +75,8 @@ export function CardForm({ me, photoUrl = null, next = '/plans', heading = 'make
         <label htmlFor="bio" className={styles.label}>
           bio <span className={styles.optional}>(optional)</span>
         </label>
-        <textarea id="bio" name="bio" rows={3} className={styles.textarea} defaultValue={v.bio} maxLength={280} />
+        <textarea id="bio" name="bio" rows={3} className={styles.textarea} defaultValue={v.bio} maxLength={280} aria-invalid={!!errors?.bio} />
+        {errors?.bio && <span className={styles.error}>{errors.bio}</span>}
       </div>
       </div>
       <button type="submit" className={styles.primary} disabled={pending}>

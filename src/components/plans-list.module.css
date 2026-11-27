@@ -111,7 +111,7 @@
     display: flex;
     flex: none;
     width: 300px;
-    height: 100dvh;
+    height: calc(100dvh - var(--demo-h, 0px));
     overflow-y: auto;
     padding: 22px 12px 12px 20px;
   }

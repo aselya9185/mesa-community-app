@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { AuthShell } from '@/components/AuthShell';
+import { DemoInvite } from '@/components/DemoInvite';
 import { ApplyForm } from './ApplyForm';
 
 export const metadata: Metadata = { title: 'request an invite · mesa' };
@@ -10,6 +11,7 @@ export default async function ApplyPage({ searchParams }: { searchParams: Promis
   const vouchCode = v && /^[0-9a-f]{12}$/.test(v) ? v : undefined;
   return (
     <AuthShell>
+      <DemoInvite note="nothing you type in this form is saved in the demo." />
       <ApplyForm vouchCode={vouchCode} fromForgot={from === 'forgot'} />
     </AuthShell>
   );

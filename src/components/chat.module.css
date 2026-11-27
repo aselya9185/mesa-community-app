@@ -29,6 +29,8 @@
 }
 
 .status {
+  flex-shrink: 0;
+  max-width: 50%;
   font-size: 13px;
   font-weight: 700;
   color: var(--pink-soft);
@@ -83,6 +85,13 @@
 .who {
   font-size: 13px;
   font-weight: 700;
+}
+
+/* a bigger target for the name link, without moving anything */
+a.who {
+  display: inline-block;
+  padding: 13px 0;
+  margin: -13px 0;
 }
 
 .bubble {

@@ -94,12 +94,15 @@
 
 .top {
   display: flex;
+  flex-wrap: wrap; /* a long name or voucher moves the label to its own line instead of squeezing it */
   align-items: center;
   gap: 10px;
 }
 
 .who {
-  flex: 1;
+  flex: 1 1 140px;
+  min-width: 0;
+  overflow-wrap: anywhere;
   display: flex;
   flex-direction: column;
   font-size: 17px;
@@ -107,7 +110,7 @@
 
 .vouch {
   min-height: 28px;
-  max-width: 55%;
+  max-width: 100%;
   box-sizing: border-box;
   padding: 4px 12px;
   line-height: 1.3;

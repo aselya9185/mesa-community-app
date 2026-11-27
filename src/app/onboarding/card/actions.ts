@@ -12,12 +12,13 @@ const schema = z.object({
   area: z.string().trim().max(60).optional(),
   instagram: z.string().trim().refine((v) => v === '' || isValidHandle(v), 'that does not look like an instagram handle'),
   trainsAt: z.string().trim().max(300, 'that is a lot of places: keep it under 300 characters').optional(),
-  bio: z.string().trim().max(280).optional(),
+  // the browser counts a line break as one character but sends two: count it as one, like the field does
+  bio: z.string().transform((v) => v.replace(/\r\n/g, '\n').trim()).pipe(z.string().max(280, 'keep it under 280 characters')).optional(),
 });
 
 /** what she submitted, so a form with an error comes back exactly as she left it */
 export type CardValues = { name: string; area: string; instagram: string; instagramPublic: boolean; trainsAt: string; likes: string[]; bio: string };
-export type CardState = { errors: Partial<Record<'name' | 'instagram' | 'trainsAt', string>>; values: CardValues; attempt: number } | null;
+export type CardState = { errors: Partial<Record<'name' | 'instagram' | 'trainsAt' | 'bio', string>>; values: CardValues; attempt: number } | null;
 
 export async function saveCardAction(prev: CardState, formData: FormData): Promise<CardState> {
   const get = (k: string) => String(formData.get(k) ?? '');
@@ -39,7 +40,7 @@ export async function saveCardAction(prev: CardState, formData: FormData): Promi
     const errors: NonNullable<CardState>['errors'] = {};
     for (const i of parsed.error.issues) {
       const k = i.path[0];
-      if (k === 'name' || k === 'instagram' || k === 'trainsAt') errors[k] = i.message;
+      if (k === 'name' || k === 'instagram' || k === 'trainsAt' || k === 'bio') errors[k] = i.message;
     }
     return failed(errors);
   }

@@ -45,34 +45,44 @@ async function allowed(svc: SupabaseClient, key: string, max: number, windowSeco
   return data === true;
 }
 
+type Checked =
+  | { ok: true; e164: string; data: z.infer<typeof schema> }
+  | { ok: false; errors: NonNullable<ApplyResult['errors']> };
+
+/** is what was typed usable? Looks nothing up and stores nothing. */
+export function checkApply(input: ApplyInput): Checked {
+  const e164 = normalizePhone(input.whatsapp ?? '');
+  const parsed = schema.safeParse({
+    // a re-request ("didn't get my link") re-confirms with number + instagram only
+    name: input.intent === 'request_link' ? (input.name?.trim() || 'x') : input.name,
+    instagram: input.instagram ?? '',
+    invitedBy: input.invitedBy?.trim() || undefined,
+  });
+  if (e164 && parsed.success) return { ok: true, e164, data: parsed.data };
+  const errors: NonNullable<ApplyResult['errors']> = {};
+  if (!e164) errors.whatsapp = 'that number does not look right. include your country code, like +34';
+  if (!parsed.success) {
+    for (const issue of parsed.error.issues) {
+      const k = issue.path[0];
+      if (k === 'name' || k === 'instagram' || k === 'invitedBy') errors[k] = issue.message;
+    }
+  }
+  return { ok: false, errors };
+}
+
 export async function handleApply(svc: SupabaseClient, input: ApplyInput, ctx: { ipHash: string }): Promise<ApplyResult> {
   // bots fill hidden fields: answer exactly like a success, store nothing
   if (input.website && input.website.trim() !== '') return { state: 'listed' };
 
   const intent: ApplyIntent = input.intent ?? 'apply';
-  const e164 = normalizePhone(input.whatsapp ?? '');
-  const parsed = schema.safeParse({
-    // a re-request ("didn't get my link") re-confirms with number + instagram only
-    name: intent === 'request_link' ? (input.name?.trim() || 'x') : input.name,
-    instagram: input.instagram ?? '',
-    invitedBy: input.invitedBy?.trim() || undefined,
-  });
-  if (!e164 || !parsed.success) {
-    const errors: ApplyResult['errors'] = {};
-    if (!e164) errors.whatsapp = 'that number does not look right. include your country code, like +34';
-    if (!parsed.success) {
-      for (const issue of parsed.error.issues) {
-        const k = issue.path[0];
-        if (k === 'name' || k === 'instagram' || k === 'invitedBy') errors[k] = issue.message;
-      }
-    }
-    return { state: 'invalid', errors };
-  }
+  const checked = checkApply(input);
+  if (!checked.ok) return { state: 'invalid', errors: checked.errors };
+  const { e164, data } = checked;
 
   if (!(await allowed(svc, `apply:ip:${ctx.ipHash}`, LIMITS.applyPerIp.max, LIMITS.applyPerIp.windowSeconds))) return { state: 'rate_limited' };
   if (!(await allowed(svc, `apply:num:${e164}`, LIMITS.applyPerNumber.max, LIMITS.applyPerNumber.windowSeconds))) return { state: 'rate_limited' };
 
-  const ig = handleKey(parsed.data.instagram);
+  const ig = handleKey(data.instagram);
 
   // 1) already a member?
   const { data: priv } = await svc.from('member_private').select('user_id').eq('whatsapp_e164', e164).maybeSingle();
@@ -115,10 +125,10 @@ export async function handleApply(svc: SupabaseClient, input: ApplyInput, ctx: {
     vouchedBy = (voucher?.id as string | undefined) ?? null;
   }
   const { error } = await svc.from('applications').insert({
-    name: parsed.data.name,
-    instagram: displayHandle(parsed.data.instagram),
+    name: data.name,
+    instagram: displayHandle(data.instagram),
     whatsapp_e164: e164,
-    invited_by_instagram: parsed.data.invitedBy ? displayHandle(parsed.data.invitedBy) : null,
+    invited_by_instagram: data.invitedBy ? displayHandle(data.invitedBy) : null,
     vouched_by: vouchedBy,
   });
   // two taps at once hit the one-pending-per-number index: that is fine, it is still "on the list"
