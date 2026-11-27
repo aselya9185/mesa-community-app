@@ -18,6 +18,7 @@ All notable changes. Format based on [Keep a Changelog](https://keepachangelog.c
 - Removing a member reports an error if it fails; a voucher without a handle still shows by name; the request form keeps "invited by" after a mistake; the card form puts the cursor on the field to fix.
 
 ### Fixed
+- Demo: switching person right after sending a message no longer drops you on the login page.
 - A plan you host or have joined always stays in your plans list, even when it is more than a week away (it used to show only in chats). Other people's plans still show for the next 7 days.
 - Plan form: day and time numbers are centred again, and "next" no longer shows beside "drop it" on desktop.
 

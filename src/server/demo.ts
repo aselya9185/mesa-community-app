@@ -158,7 +158,14 @@ export async function enterDemo(svc: SupabaseClient, client: SupabaseClient, per
   if (!person || !userId) throw new Error('unknown demo person');
   const email = loginEmail(person.phone);
 
-  await client.auth.signOut({ scope: 'local' }); // leave the previous person on this device only
+  // A real account on this device is signed out properly. A demo person is NOT: requests already on their way still
+  // carry that session, and if it were revoked their answers would clear the cookie of the person switched to, leaving
+  // the visitor on the login page. Demo sessions end at the nightly reset.
+  const previous = (await client.auth.getUser()).data.user;
+  if (previous) {
+    const { data } = await svc.from('profiles').select('is_demo').eq('id', previous.id).maybeSingle();
+    if (!data?.is_demo) await client.auth.signOut({ scope: 'local' });
+  }
 
   await inTurn(svc, persona, async () => {
     // heal anything a previous visitor did to the login itself
