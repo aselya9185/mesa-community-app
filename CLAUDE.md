@@ -1,10 +1,10 @@
 # Mesa
 
-Invite-only, women-only community web app (PWA) for group outings in Barcelona. Plan: `docs/PLAN.md` (kept on the developer's computer only, not in the repo; source of truth for architecture, RLS, milestones). UI source of truth: the "brat club" screens (mobile B*, plus the tablet/desktop canvas "Mesa tablet and desktop"). If anything is ambiguous or you must deviate from the design or these rules, **stop and ask** instead of guessing.
+Invite-only, women-only community web app (PWA) for group outings in Barcelona. UI source of truth: the "brat club" screens (mobile B*, plus the tablet/desktop canvas "Mesa tablet and desktop"). If anything is ambiguous or you must deviate from the design or these rules, **stop and ask** instead of guessing.
 
 ## Stack
 
-Next.js (App Router, TypeScript strict) · Supabase free tier (Postgres, Auth, Realtime, Storage, RLS) · Vercel Hobby · installable PWA. Plain CSS (CSS variables + CSS Modules), no Tailwind. Fonts: Bricolage Grotesque 800 (lowercase headings), DM Sans (body) via `next/font`.
+Next.js (App Router, TypeScript strict) · Supabase (Postgres, Auth, Realtime, Storage, RLS) · Vercel · installable PWA. Plain CSS (CSS variables + CSS Modules), no Tailwind. Fonts: Bricolage Grotesque 800 (lowercase headings), DM Sans (body) via `next/font`.
 
 ## Commands
 
@@ -27,7 +27,7 @@ node scripts/set-push-config.mjs <url>        # where the database sends push ha
 
 ## Hard rules
 
-- **Zero running cost for v1.** No paid APIs, SMS or plans. Ask before adding any paid service or any dependency not already approved: `@supabase/supabase-js`, `@supabase/ssr`, `web-push`, `zod`, `libphonenumber-js`, `vitest` (+ the Supabase CLI as a dev dependency). Playwright is approved as a dev dependency for end-to-end tests only. No Tailwind, PWA plugin or Turnstile.
+- **Keep it lean.** No SMS. Ask before adding any external service or any dependency not already approved: `@supabase/supabase-js`, `@supabase/ssr`, `web-push`, `zod`, `libphonenumber-js`, `vitest` (+ the Supabase CLI as a dev dependency). Playwright is approved as a dev dependency for end-to-end tests only. No Tailwind, PWA plugin or Turnstile.
 - **Notifications:** web push + in-app only. No WhatsApp/Instagram API.
 - **Privacy first.** RLS on every table. A logged-out, pending or removed user reads nothing. Members never see each other's WhatsApp numbers (only the admin does). Instagram handles live in `member_instagram` and are private unless the member opts in (`is_public`); the admin and the owner always see them. `noindex` + `robots.txt` disallow-all. No secrets in the repo (`.env.example` only). The service-role key is server-only and used only for: the apply form (+ its rate limits), token redeem + account creation, the login rate limiter, admin auth actions (banning a removed member), web push, and the demo (one-click entry and reading its switch: `src/server/demo.ts`, `demo-active.ts`, only when `DEMO_MODE=true`). A test fails if client code imports it.
 - **Auth:** Supabase Auth only (no hand-rolled hashing). Login = WhatsApp number + password. Users are created only via the admin API; public sign-up is disabled. Admin uses MFA (TOTP); `is_admin()` requires AAL2.
@@ -38,11 +38,11 @@ node scripts/set-push-config.mjs <url>        # where the database sends push ha
 
 ## Conventions
 
-- Tests first for security (see `docs/PLAN.md` §9). Each milestone: write tests, implement, run `npm run check`, commit with a clear message, summarise.
+- Tests first for security. Each milestone: write tests, implement, run `npm run check`, commit with a clear message, summarise.
 - All DB changes are migrations under `supabase/migrations`. Security rules live in the database, not only in the UI.
 - `invites` has a column-level grant (no `token_hash`): `select('*')` on it errors for every client, so always list columns.
 - Never import the service client from client code. Never log tokens, numbers or passwords.
-- Copy follows the lowercase house style; see the appendix in `docs/PLAN.md` for undesigned states.
+- Copy follows the lowercase house style.
 
 ## Workflow (see CONTRIBUTING.md)
 
@@ -51,7 +51,7 @@ node scripts/set-push-config.mjs <url>        # where the database sends push ha
 - Update `CHANGELOG.md` under "Unreleased" for anything users would notice.
 - Fixing review comments: reproduce with a failing test when it is a bug, fix on the same branch, push a new commit, and say which comment it answers. Do not force-push over reviewed commits.
 - Never edit a migration that has been applied; add a new one. Never touch secrets, `.env*` or the production database from a review fix.
-- AI review and fix automation costs money to run: do not enable or change those workflows without the owner's go-ahead.
+- Do not enable or change AI review or fix automation without the owner's go-ahead.
 
 ## Demo mode
 

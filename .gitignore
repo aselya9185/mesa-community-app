@@ -19,7 +19,7 @@ next-env.d.ts
 supabase/.branches/
 supabase/.temp/
 
-# private operations notes: kept on this computer only
+# local notes
 docs/PLAN.md
 docs/DEPLOY.md
 docs/RUNBOOK.md
