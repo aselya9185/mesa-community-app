@@ -13,4 +13,4 @@ description: Add or change database tables, columns, policies, functions or trig
    - Dropping or renaming: expand first (add the new, make code use it), contract in a later change.
    - Say the order in the pull request.
 7. Existing rows: what happens to them? New constraints on old data should be `not valid` or the data fixed in the same migration.
-8. A real database has no automatic backups here: dry-run (`db push --remote --dry-run`) and rehearse risky SQL in a statement that raises, so it rolls back. Applying to the real database needs the owner's go-ahead.
+8. Before touching a real database: dry-run (`db push --remote --dry-run`) and rehearse risky SQL in a statement that raises, so it rolls back. Applying to the real database needs the owner's go-ahead.

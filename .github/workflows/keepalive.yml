@@ -1,17 +1,7 @@
 name: keep alive
 
-# TODO(backup): add an automated, encrypted database backup (a sibling workflow, e.g. backup.yml).
-#   - Free Supabase projects have no managed backups; the plan is a weekly `supabase db dump` run from GitHub Actions.
-#   - The dump contains every member's phone number: ENCRYPT IT before it leaves the runner (use `age` with a PUBLIC key
-#     stored as a repo variable; keep the private key offline, so a leaked repo secret cannot decrypt old backups).
-#   - Keep the encrypted file in private storage outside this repo (start with a workflow artifact, 30-90 day retention;
-#     move to a free S3-compatible bucket such as Cloudflare R2 or Backblaze B2 if you want longer history).
-#   - Needs a repo secret with the database connection string (SUPABASE_DB_URL). Never commit it, never print it.
-#   - Practise a restore into an empty local database before trusting it. Photos (avatars bucket) are not in the dump.
-#   - Not needed if the project moves to a paid Supabase plan with daily backups.
-
-# Free Supabase projects pause after about a week without activity. A daily ping keeps mesa awake.
-# Set the repository VARIABLE `SITE_URL` (Settings > Secrets and variables > Actions > Variables), e.g. https://mesa-yourname.vercel.app
+# A daily health check of the running app.
+# Set the repository VARIABLE `SITE_URL` (Settings > Secrets and variables > Actions > Variables), e.g. https://your-domain.example
 on:
   schedule:
     - cron: '17 6 * * *'
