@@ -35,7 +35,6 @@ export default async function DemoPage({ searchParams }: { searchParams: Promise
           </PersonaButton>
         ))}
       </form>
-      <p className={styles.small}>everyone here is made up, and the demo starts fresh every night. numbers, photos and pings are switched off.</p>
       <p className={styles.small}>
         curious how members get in?{' '}
         <Link href="/apply" className={styles.link}>
