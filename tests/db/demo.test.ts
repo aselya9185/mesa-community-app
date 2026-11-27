@@ -137,6 +137,27 @@ describe('the demo', () => {
     expect((await third.client.auth.mfa.getAuthenticatorAssuranceLevel()).data?.currentLevel).toBe('aal2');
   });
 
+  // requests already on their way still carry the previous person's session: revoking it made their answers
+  // clear the new person's cookie, and the visitor landed on the login page
+  it('keeps the previous demo session alive when switching person', async () => {
+    const client = anonClient();
+    await enterDemo(svc, client, 'member');
+    const before = (await client.auth.getSession()).data.session!.access_token;
+    await enterDemo(svc, client, 'host');
+    expect((await client.auth.getUser()).data.user?.id).toBe(ids.get('host'));
+    expect((await anonClient().auth.getUser(before)).error).toBeNull();
+  });
+
+  it('signs a real account out properly when this device moves into the demo', async () => {
+    const someone = await makeUser({ name: 'visitingadmin', role: 'admin' }); // an admin added now is a real account
+    const client = anonClient();
+    expect((await client.auth.signInWithPassword({ email: loginEmail(someone.phone), password: someone.password })).error).toBeNull();
+    const before = (await client.auth.getSession()).data.session!.access_token;
+    await enterDemo(svc, client, 'member');
+    expect((await anonClient().auth.getUser(before)).error).not.toBeNull();
+    await svc.auth.admin.deleteUser(someone.id);
+  });
+
   it('repairs a login a visitor changed', async () => {
     const { client } = await enter('member');
     await client.auth.updateUser({ password: 'vandal-password-1' });

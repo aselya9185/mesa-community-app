@@ -52,6 +52,7 @@ Run it with `npm run test:e2e` (the demo suite is the second half: `playwright.d
 |---|---|---|
 | open `/` logged out, tap each of member 1, member 2, admin | in with one click, no password, lands on plans (admin: the door list) | `e2e-demo/demo.spec.ts` |
 | switch person from the top bar on a plan, a chat, the card, an admin page | same page where that person may see it, otherwise a sensible one; never an error or a login form | `tests/demo.test.ts`, `e2e-demo` |
+| switch person right after sending a message, and with a request of the old person still on its way | stays signed in as the new person; also try it on the live demo, where timing differs | `e2e-demo`, `tests/db/demo.test.ts` |
 | two browsers as the same person | neither is signed out | `e2e-demo` |
 | member 2 gives member 1 the free +1; chat; vote | works, and only member 1 and member 2 see who got it | `e2e-demo` |
 | admin: approve a request, open her link, set a password, make a card | works; no WhatsApp button anywhere | `e2e-demo` |

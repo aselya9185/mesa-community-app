@@ -186,6 +186,17 @@ test('switching on a page the next person cannot open lands on her plans', async
   await expect(page.getByText('zumba after work').first()).toBeVisible();
 });
 
+test('a late answer to the previous person does not sign the visitor out after switching', async ({ page }) => {
+  await enter(page, 'member 1');
+  const late = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  await viewAs(page, 'member 2');
+  // a request that left as member 1 reaches the server after the switch (a page being fetched ahead, a poll)
+  await page.request.get('/plans', { headers: { cookie: late }, maxRedirects: 0 });
+  await page.goto('/plans');
+  await expect(page).toHaveURL(/\/plans$/);
+  await expect(bar(page).getByRole('button', { name: /member/ }).first()).toBeVisible();
+});
+
 test('the demo form still checks what is typed', async ({ page }) => {
   await page.goto('/apply');
   await page.getByLabel('your name').fill('Lu');
